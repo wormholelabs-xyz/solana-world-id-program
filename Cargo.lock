@@ -1591,13 +1591,15 @@ name = "solana-world-id-program"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "cfg-if",
+ "wormhole-query-sdk",
 ]
 
 [[package]]
 name = "subtle"
-version = "2.6.0"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d0208408ba0c3df17ed26eb06992cb1a1268d41b2c0e12e65203fbe3972cee5"
+checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
@@ -1930,6 +1932,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59b5e5f6c299a3c7890b876a2a587f3115162487e704907d9b6cd29473052ba1"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "wormhole-query-sdk"
+version = "0.0.1"
+source = "git+https://github.com/wormholelabs-xyz/wormhole-query-sdk-rust?rev=0f34cb470f4e3137b53aa91adcbb0c7def280925#0f34cb470f4e3137b53aa91adcbb0c7def280925"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]

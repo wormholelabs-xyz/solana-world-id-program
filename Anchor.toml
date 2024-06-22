@@ -17,4 +17,94 @@ cluster = "Localnet"
 wallet = "tests/keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "npx tsc --noEmit && yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana-world-id-program.ts"
+
+## CORE BRIDGE DEVNET
+### Wormhole Core Bridge Program (Devnet)
+[[test.genesis]]
+address = "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"
+program = "tests/artifacts/devnet_core_bridge.so"
+
+### Wormhole Core Bridge (Devnet) -- Config
+[[test.validator.account]]
+address = "FKoMTctsC7vJbEqyRiiPskPnuQx2tX1kurmvWByq5uZP"
+filename = "tests/accounts/core_bridge_devnet/bridge_config.json"
+
+### Wormhole Core Bridge (Devnet) -- Fee Collector
+[[test.validator.account]]
+address = "GXBsgBD3LDn3vkRZF6TfY5RqgajVZ4W5bMAdiAaaUARs"
+filename = "tests/accounts/core_bridge_devnet/fee_collector.json"
+
+### Wormhole Core Bridge (Devnet) -- Guardian Set 0
+[[test.validator.account]]
+address = "6MxkvoEwgB9EqQRLNhvYaPGhfcLtBtpBqdQugr3AZUgD"
+filename = "tests/accounts/core_bridge_devnet/guardian_set.json"
+
+## CORE BRIDGE TESTNET (Solana devnet)
+### Wormhole Core Bridge Program (Testnet)
+# [[test.validator.clone]]
+# address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+[[test.genesis]]
+address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+program = "tests/artifacts/testnet_core_bridge.so"
+
+### Wormhole Core Bridge (Testnet) -- Config
+[[test.validator.account]]
+address = "6bi4JGDoRwUs9TYBuvoA7dUVyikTJDrJsJU1ew6KVLiu"
+filename = "tests/accounts/core_bridge_testnet/config.json"
+
+### Wormhole Core Bridge (Testnet) -- Fee Collector
+[[test.validator.account]]
+address = "7s3a1ycs16d6SNDumaRtjcoyMaTDZPavzgsmS3uUZYWX"
+filename = "tests/accounts/core_bridge_testnet/fee_collector.json"
+
+### Wormhole Core Bridge (Testnet) -- Guardian Set 0
+[[test.validator.account]]
+address = "dxZtypiKT5D9LYzdPxjvSZER9MgYfeRVU5qpMTMTRs4"
+filename = "tests/accounts/core_bridge_testnet/guardian_set_0.json"
+
+## CORE BRIDGE MAINNET
+### Wormhole Core Bridge Program (Mainnet)
+[[test.genesis]]
+address = "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth"
+program = "tests/artifacts/mainnet_core_bridge.so"
+
+### Wormhole Core Bridge (Mainnet) -- Config
+[[test.validator.account]]
+address = "2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn"
+filename = "tests/accounts/core_bridge_mainnet/config.json"
+
+### Wormhole Core Bridge (Mainnet) -- Fee Collector
+[[test.validator.account]]
+address = "9bFNrXNb2WTx8fMHXCheaZqkLZ3YCCaiqTftHxeintHy"
+filename = "tests/accounts/core_bridge_mainnet/fee_collector.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 0
+[[test.validator.account]]
+address = "DS7qfSAgYsonPpKoAjcGhX9VFjXdGkiHjEDkTidf8H2P"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_0.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 1
+[[test.validator.account]]
+address = "ywSj8KSWAXavP8bCgjCgaLGWt4UBTF4bLBSksTzFJ3B"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_1.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 2
+[[test.validator.account]]
+address = "HwCQDTkvQzjqddy3iZ2FL7bvkeVmC9eHYRkDieRGyMCB"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_2.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 3
+[[test.validator.account]]
+address = "6d3w8mGjJauf6gCAg7WfLezbaPmUHYGuoNutnfYF1RYM"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_3.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 4 (current)
+[[test.validator.account]]
+address = "AFEXK4A1BU7BZfi8niAmker98LH9EARB544wKGPXwMyy"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_4.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 5 (mock)
+[[test.validator.account]]
+address = "6YG3J7PaxyMnnbU67ifyrgF3BzNzc7cD8hPkqK6ATweE"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_5_mock.json"

@@ -1,0 +1,1 @@
+Vendored from [wormhole-anchor-sdk](https://github.com/wormhole-foundation/wormhole-scaffolding/tree/2f5e0a732c63a6655be3b67c77fbd5ad92bf944f/solana/modules/wormhole-anchor-sdk) until it supports anchor `0.30.1`
