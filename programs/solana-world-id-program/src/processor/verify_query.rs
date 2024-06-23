@@ -1,5 +1,5 @@
 use crate::{
-    error::ExampleQueriesSolanaVerifyError,
+    error::SolanaWorldIDProgramError,
     state::{wormhole, QuerySignatureSet, WormholeGuardianSet},
 };
 use anchor_lang::{
@@ -10,6 +10,23 @@ use wormhole_query_sdk::{
     structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse},
     MESSAGE_PREFIX, QUERY_MESSAGE_LEN,
 };
+
+// TODO: move to config acct so these are more easily visible to the public
+// Or consider a view method
+// https://www.anchor-lang.com/docs/cross-program-invocations#reading-return-data-in-the-clients
+// e.g.
+// https://github.com/wormhole-foundation/example-native-token-transfers/blob/c0b0e69c03b3f83ce5a0f8d676d6a82a82443c1a/solana/programs/example-native-token-transfers/src/lib.rs#L80C12-L80C19
+// https://github.com/wormhole-foundation/example-native-token-transfers/blob/c0b0e69c03b3f83ce5a0f8d676d6a82a82443c1a/solana/ts/lib/ntt.ts#L156
+
+// https://docs.wormhole.com/wormhole/reference/constants
+pub const ETH_CHAIN_ID: u16 = 2;
+// https://etherscan.io/address/0xf7134CE138832c1456F2a91D64621eE90c2bddEa
+pub const ETH_WORLD_ID_IDENTITY_MANAGER: [u8; 20] = [
+    0xf7, 0x13, 0x4C, 0xE1, 0x38, 0x83, 0x2c, 0x14, 0x56, 0xF2, 0xa9, 0x1D, 0x64, 0x62, 0x1e, 0xE9,
+    0x0c, 0x2b, 0xdd, 0xEa,
+];
+// web3.eth.abi.encodeFunctionSignature("latestRoot()");
+pub const LATEST_ROOT_SIGNATURE: [u8; 4] = [0xd7, 0xb0, 0xfe, 0xf1];
 
 /// Compute quorum based on the number of guardians in a guardian set.
 #[inline]
@@ -46,7 +63,7 @@ impl<'info> VerifyQuery<'info> {
             .expect("timestamp overflow");
         require!(
             guardian_set.is_active(&timestamp),
-            ExampleQueriesSolanaVerifyError::GuardianSetExpired
+            SolanaWorldIDProgramError::GuardianSetExpired
         );
 
         let signature_set = &ctx.accounts.signature_set;
@@ -55,7 +72,7 @@ impl<'info> VerifyQuery<'info> {
         // the guardian set.
         require!(
             signature_set.num_verified() >= quorum(guardian_set.keys.len()),
-            ExampleQueriesSolanaVerifyError::NoQuorum
+            SolanaWorldIDProgramError::NoQuorum
         );
 
         // Recompute the message hash and compare it to the one in the signature set account.
@@ -69,14 +86,14 @@ impl<'info> VerifyQuery<'info> {
         // set.
         require!(
             recomputed == signature_set.message,
-            ExampleQueriesSolanaVerifyError::InvalidMessageHash
+            SolanaWorldIDProgramError::InvalidMessageHash
         );
 
         // SECURITY: defense-in-depth, check again that these are the expected length
         require_eq!(
             recomputed.len(),
             QUERY_MESSAGE_LEN,
-            ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+            SolanaWorldIDProgramError::InvalidSigVerifyInstruction
         );
 
         // Done.
@@ -87,72 +104,63 @@ impl<'info> VerifyQuery<'info> {
 #[access_control(VerifyQuery::constraints(&ctx, &bytes))]
 pub fn verify_query(ctx: Context<VerifyQuery>, bytes: Vec<u8>) -> Result<()> {
     let response = QueryResponse::deserialize(&bytes)
-        .map_err(|_| ExampleQueriesSolanaVerifyError::FailedToParseResponse)?;
-    msg!(
-        "response: version: {}, req_chain: {}, req_id: {:?}, req_version: {}, req_nonce: {}, reqs_len: {}, resp_len: {}",
-        response.version,
-        response.request_chain_id,
-        response.request_id,
-        response.request.version,
-        response.request.nonce,
-        response.request.requests.len(),
-        response.responses.len()
+        .map_err(|_| SolanaWorldIDProgramError::FailedToParseResponse)?;
+    require!(
+        response.request.requests.len() == 1,
+        SolanaWorldIDProgramError::InvalidNumberOfRequests
     );
-    for idx in 0..response.request.requests.len() {
-        let request = &response.request.requests[idx];
-        match &request.query {
-            ChainSpecificQuery::EthCallQueryRequest(q) => {
-                msg!(
-                    "EthCallQueryRequest: {}, {}, {}",
-                    request.chain_id,
-                    q.block_tag,
-                    q.call_data.len()
-                );
-                for call_idx in 0..q.call_data.len() {
-                    let call = &q.call_data[call_idx];
-                    msg!("call: {:?}, {:?}", call.to, call.data)
-                }
-            }
-            ChainSpecificQuery::EthCallByTimestampQueryRequest(_) => {
-                msg!("EthCallByTimestampQueryRequest")
-            }
-            ChainSpecificQuery::EthCallWithFinalityQueryRequest(_) => {
-                msg!("EthCallWithFinalityQueryRequest")
-            }
-            ChainSpecificQuery::SolanaAccountQueryRequest(_) => {
-                msg!("SolanaAccountQueryRequest")
-            }
-        }
+    let request = &response.request.requests[0];
+    require!(
+        request.chain_id == ETH_CHAIN_ID,
+        SolanaWorldIDProgramError::InvalidRequestChainId
+    );
+    let query = match &request.query {
+        ChainSpecificQuery::EthCallQueryRequest(q) => Some(q),
+        _ => None,
     }
-    for idx in 0..response.responses.len() {
-        let response = &response.responses[idx];
-        match &response.response {
-            ChainSpecificResponse::EthCallQueryResponse(eth_response) => {
-                msg!(
-                    "EthCallQueryResponse: {}, {}, {:?}. {}, {}",
-                    response.chain_id,
-                    eth_response.block_number,
-                    eth_response.block_hash,
-                    eth_response.block_time,
-                    eth_response.results.len()
-                );
-                for result_idx in 0..eth_response.results.len() {
-                    let result = &eth_response.results[result_idx];
-                    msg!("result: {:?}", result)
-                }
-            }
-            ChainSpecificResponse::EthCallByTimestampQueryResponse(_) => {
-                msg!("EthCallByTimestampQueryResponse")
-            }
-            ChainSpecificResponse::EthCallWithFinalityQueryResponse(_) => {
-                msg!("EthCallWithFinalityQueryResponse")
-            }
-            ChainSpecificResponse::SolanaAccountQueryResponse(_) => {
-                msg!("SolanaAccountQueryResponse")
-            }
-        }
-    }
+    .ok_or(SolanaWorldIDProgramError::InvalidRequestType)?;
+    require!(
+        query.call_data.len() == 1,
+        SolanaWorldIDProgramError::InvalidRequestCallDataLength
+    );
+    require!(
+        query.call_data[0].to == ETH_WORLD_ID_IDENTITY_MANAGER,
+        SolanaWorldIDProgramError::InvalidRequestContract
+    );
+    require!(
+        query.call_data[0].data == LATEST_ROOT_SIGNATURE,
+        SolanaWorldIDProgramError::InvalidRequestSignature
+    );
 
-    // Done.
+    require!(
+        response.responses.len() == 1,
+        SolanaWorldIDProgramError::InvalidNumberOfResponses
+    );
+    let response = &response.responses[0];
+    require!(
+        response.chain_id == ETH_CHAIN_ID,
+        SolanaWorldIDProgramError::InvalidResponseChainId
+    );
+    let chain_response = match &response.response {
+        ChainSpecificResponse::EthCallQueryResponse(q) => Some(q),
+        _ => None,
+    }
+    .ok_or(SolanaWorldIDProgramError::InvalidResponseType)?;
+
+    // TODO: validate block number
+    // TODO: validate block time
+
+    require!(
+        chain_response.results.len() == 1,
+        SolanaWorldIDProgramError::InvalidResponseResultsLength
+    );
+    let result = &chain_response.results[0];
+    require!(
+        result.len() == 32,
+        SolanaWorldIDProgramError::InvalidResponseResultLength
+    );
+
+    msg!("result: {:?}", result);
+
     Ok(())
 }

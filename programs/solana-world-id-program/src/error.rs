@@ -22,7 +22,7 @@ use anchor_lang::prelude::error_code;
 /// NOTE: All of these error codes when triggered are offset by `ERROR_CODE_OFFSET` (6000). So for
 /// example, `U64Overflow` will return as 6006.
 #[error_code]
-pub enum ExampleQueriesSolanaVerifyError {
+pub enum SolanaWorldIDProgramError {
     #[msg("InvalidInstructionArgument")]
     InvalidInstructionArgument = 0x2,
 
@@ -196,4 +196,37 @@ pub enum ExampleQueriesSolanaVerifyError {
 
     #[msg("FailedToParseResponse")]
     FailedToParseResponse = 0x3000,
+
+    #[msg("InvalidNumberOfRequests")]
+    InvalidNumberOfRequests = 0x3001,
+
+    #[msg("InvalidRequestChainId")]
+    InvalidRequestChainId = 0x3002,
+
+    #[msg("InvalidRequestType")]
+    InvalidRequestType = 0x3003,
+
+    #[msg("InvalidRequestCallDataLength")]
+    InvalidRequestCallDataLength = 0x3004,
+
+    #[msg("InvalidRequestContract")]
+    InvalidRequestContract = 0x3005,
+
+    #[msg("InvalidRequestSignature")]
+    InvalidRequestSignature = 0x3006,
+
+    #[msg("InvalidNumberOfResponses")]
+    InvalidNumberOfResponses = 0x3007,
+
+    #[msg("InvalidResponseChainId")]
+    InvalidResponseChainId = 0x3008,
+
+    #[msg("InvalidResponseType")]
+    InvalidResponseType = 0x3009,
+
+    #[msg("InvalidResponseResultsLength")]
+    InvalidResponseResultsLength = 0x3010,
+
+    #[msg("InvalidResponseResultLength")]
+    InvalidResponseResultLength = 0x3011,
 }

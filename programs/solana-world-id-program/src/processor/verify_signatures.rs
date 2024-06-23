@@ -1,5 +1,5 @@
 use crate::{
-    error::ExampleQueriesSolanaVerifyError,
+    error::SolanaWorldIDProgramError,
     state::{QuerySignatureSet, WormholeGuardianSet},
 };
 use anchor_lang::{
@@ -73,7 +73,7 @@ pub fn verify_signatures(ctx: Context<VerifySignatures>, signer_indices: [i8; 19
         sysvar::instructions::load_current_index_checked(instructions_sysvar)?,
         1,
     )
-    .ok_or(ExampleQueriesSolanaVerifyError::InstructionAtWrongIndex)?;
+    .ok_or(SolanaWorldIDProgramError::InstructionAtWrongIndex)?;
 
     // And here we verify that the previous instruction is actually the Sig Verify native program.
     let SigVerifyParameters {
@@ -96,7 +96,7 @@ pub fn verify_signatures(ctx: Context<VerifySignatures>, signer_indices: [i8; 19
     require_eq!(
         signers.len(),
         guardian_indices.len(),
-        ExampleQueriesSolanaVerifyError::SignerIndicesMismatch
+        SolanaWorldIDProgramError::SignerIndicesMismatch
     );
 
     // We use this message hash later on.
@@ -112,14 +112,14 @@ pub fn verify_signatures(ctx: Context<VerifySignatures>, signer_indices: [i8; 19
         require_eq!(
             guardian_set.index,
             signature_set.guardian_set_index,
-            ExampleQueriesSolanaVerifyError::GuardianSetMismatch
+            SolanaWorldIDProgramError::GuardianSetMismatch
         );
 
         // And verify that the message hash is the same as the one already encoded in the signature
         // set.
         require!(
             message == signature_set.message,
-            ExampleQueriesSolanaVerifyError::MessageMismatch
+            SolanaWorldIDProgramError::MessageMismatch
         );
     } else {
         // We are assuming that the signature set has not been "initialized" if there is no
@@ -137,7 +137,7 @@ pub fn verify_signatures(ctx: Context<VerifySignatures>, signer_indices: [i8; 19
     for (i, &signer_index) in guardian_indices.iter().enumerate() {
         require!(
             signers.get(i) == guardians.get(signer_index),
-            ExampleQueriesSolanaVerifyError::InvalidGuardianKeyRecovery
+            SolanaWorldIDProgramError::InvalidGuardianKeyRecovery
         );
 
         // Overwritten content should be zeros except double signs by the
@@ -159,7 +159,7 @@ fn deserialize_secp256k1_ix(
     require_keys_eq!(
         ix.program_id,
         solana_program::secp256k1_program::id(),
-        ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+        SolanaWorldIDProgramError::InvalidSigVerifyInstruction
     );
 
     let ix_data = &ix.data;
@@ -190,24 +190,24 @@ fn deserialize_secp256k1_ix(
         require_eq!(
             usize::from(message_size),
             QUERY_MESSAGE_LEN,
-            ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+            SolanaWorldIDProgramError::InvalidSigVerifyInstruction
         );
 
         // The instruction index must be the same for signature, eth pubkey and message.
         require_eq!(
             u16::from(signature_ix_index),
             sig_verify_index,
-            ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+            SolanaWorldIDProgramError::InvalidSigVerifyInstruction
         );
         require_eq!(
             u16::from(eth_pubkey_ix_index),
             sig_verify_index,
-            ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+            SolanaWorldIDProgramError::InvalidSigVerifyInstruction
         );
         require_eq!(
             u16::from(message_ix_index),
             sig_verify_index,
-            ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+            SolanaWorldIDProgramError::InvalidSigVerifyInstruction
         );
 
         let eth_pubkey_offset = usize::from(eth_pubkey_offset);
@@ -221,7 +221,7 @@ fn deserialize_secp256k1_ix(
             require_eq!(
                 message_offset,
                 expected_message_offset,
-                ExampleQueriesSolanaVerifyError::InvalidSigVerifyInstruction
+                SolanaWorldIDProgramError::InvalidSigVerifyInstruction
             );
         }
 
@@ -238,6 +238,6 @@ fn deserialize_secp256k1_ix(
             message,
         })
     } else {
-        Err(ExampleQueriesSolanaVerifyError::EmptySigVerifyInstruction.into())
+        Err(SolanaWorldIDProgramError::EmptySigVerifyInstruction.into())
     }
 }
