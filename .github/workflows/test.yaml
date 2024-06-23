@@ -1,0 +1,32 @@
+name: test
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Anchor Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get solana version
+        id: solana
+        run: |
+          SOLANA_VERSION="$(awk '/solana_version =/ { print substr($3, 2, length($3)-2) }' Anchor.toml)"
+          echo "::set-output name=version::${SOLANA_VERSION}"
+      - name: Get anchor version
+        id: anchor
+        run: |
+          ANCHOR_VERSION="$(awk '/anchor_version =/ { print substr($3, 2, length($3)-2) }' Anchor.toml)"
+          echo "::set-output name=version::${ANCHOR_VERSION}"
+      - uses: metadaoproject/anchor-test@c47c46486d1a62b0b22419163d7f7bfae570c390
+        with:
+          anchor-version: "${{steps.anchor.outputs.version}}"
+          solana-cli-version: "${{steps.solana.outputs.version}}"
+
+      - run: cargo fmt --check --all
+      - run: cargo clippy
