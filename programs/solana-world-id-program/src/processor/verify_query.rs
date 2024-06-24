@@ -1,6 +1,6 @@
 use crate::{
     error::SolanaWorldIDProgramError,
-    state::{wormhole, QuerySignatureSet, WormholeGuardianSet},
+    state::{wormhole, LatestRoot, QuerySignatureSet, Root, WormholeGuardianSet},
 };
 use anchor_lang::{
     prelude::*,
@@ -35,7 +35,11 @@ pub fn quorum(num_guardians: usize) -> usize {
 }
 
 #[derive(Accounts)]
+#[instruction(bytes: Vec<u8>)]
 pub struct VerifyQuery<'info> {
+    #[account(mut)]
+    payer: Signer<'info>,
+
     /// Guardian set used for signature verification (whose index should agree with the signature
     /// set account's guardian set index).
     #[account(
@@ -49,7 +53,36 @@ pub struct VerifyQuery<'info> {
     guardian_set: Account<'info, WormholeGuardianSet>,
 
     /// Stores signature validation from Sig Verify native program.
+    /// TODO: does this need to have an owner defined?
     signature_set: Account<'info, QuerySignatureSet>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + Root::INIT_SPACE,
+        seeds = [
+            Root::SEED_PREFIX,
+            // TODO: what are better ways to do this? maybe instruction input?
+            &bytes.as_slice()[bytes.len()-32..],
+            &[0x00], //TODO: type - is there a way to ensure the seeds match? maybe take it as instruction input
+        ],
+        bump
+    )]
+    root: Account<'info, Root>,
+
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = 8 + LatestRoot::INIT_SPACE,
+        seeds = [
+            LatestRoot::SEED_PREFIX,
+            &[0x00],
+        ],
+        bump
+    )]
+    latest_root: Account<'info, LatestRoot>,
+
+    system_program: Program<'info, System>,
 }
 
 impl<'info> VerifyQuery<'info> {
@@ -161,6 +194,21 @@ pub fn verify_query(ctx: Context<VerifyQuery>, bytes: Vec<u8>) -> Result<()> {
     );
 
     msg!("result: {:?}", result);
+
+    ctx.accounts.root.set_inner(Root {
+        read_block_number: chain_response.block_number,
+        read_block_hash: chain_response.block_hash,
+        read_block_time: chain_response.block_time,
+        expiry_time: (chain_response.block_time / 1_000_000) + (24 * 60 * 60), // TODO: replace with config expiry
+        payer: ctx.accounts.payer.key(),
+    });
+
+    ctx.accounts.latest_root.set_inner(LatestRoot {
+        read_block_number: chain_response.block_number,
+        read_block_hash: chain_response.block_hash,
+        read_block_time: chain_response.block_time,
+        root: result.to_vec(),
+    });
 
     Ok(())
 }

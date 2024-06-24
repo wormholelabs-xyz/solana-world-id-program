@@ -15,6 +15,8 @@ import chaiAsPromised from "chai-as-promised";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
 import { createVerifySignaturesInstructions } from "./helpers/verifySignature";
+import { deriveRootKey } from "./helpers/root";
+import { deriveLatestRootKey } from "./helpers/latestRoot";
 
 use(chaiAsPromised);
 
@@ -76,11 +78,15 @@ describe("solana-world-id-program", () => {
       ),
     ]);
     mockQueryResponse = await mock.mock(query);
-    // {
-    //   const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
-    //     .response as EthCallQueryResponse;
-    //   console.log(`Queried World ID root: ${BigInt(response.results[0])}`);
-    // }
+    {
+      const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
+        .response as EthCallQueryResponse;
+      console.log(
+        `Queried World ID root: ${BigInt(response.results[0])} (${
+          response.results[0]
+        })`
+      );
+    }
 
     const instructions = await createVerifySignaturesInstructions(
       p.connection,
@@ -114,6 +120,16 @@ describe("solana-world-id-program", () => {
   });
 
   it("Verifies mock queries!", async () => {
+    const rootHash = mockQueryResponse.bytes.substring(
+      mockQueryResponse.bytes.length - 64
+    );
+    console.log(`Verifying root: ${BigInt(`0x${rootHash}`)} (0x${rootHash})`);
+    const root = deriveRootKey(
+      program.programId,
+      Buffer.from(rootHash, "hex"),
+      0
+    );
+    const latestRoot = deriveLatestRootKey(program.programId, 0);
     await expect(
       program.methods
         .verifyQuery(Buffer.from(mockQueryResponse.bytes, "hex"))
@@ -123,8 +139,16 @@ describe("solana-world-id-program", () => {
             mockGuardianSetIndex
           ),
           signatureSet: validMockSignatureSet.publicKey,
+          root,
+          latestRoot,
         })
         .rpc()
     ).to.be.fulfilled;
+    const rootAcct = await program.account.root.fetch(root);
+    // TODO: verify contents
+    console.log(rootAcct);
+    const latestRootAcct = await program.account.latestRoot.fetch(latestRoot);
+    // TODO: verify contents
+    // console.log(latestRootAcct);
   });
 });
