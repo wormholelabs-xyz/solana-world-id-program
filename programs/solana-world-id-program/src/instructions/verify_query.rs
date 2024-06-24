@@ -1,6 +1,6 @@
 use crate::{
     error::SolanaWorldIDProgramError,
-    state::{wormhole, LatestRoot, QuerySignatureSet, Root, WormholeGuardianSet},
+    state::{wormhole, Config, LatestRoot, QuerySignatureSet, Root, WormholeGuardianSet},
 };
 use anchor_lang::{
     prelude::*,
@@ -53,7 +53,7 @@ pub struct VerifyQuery<'info> {
     guardian_set: Account<'info, WormholeGuardianSet>,
 
     /// Stores signature validation from Sig Verify native program.
-    /// TODO: does this need to have an owner defined?
+    /// TODO: does this need to have an owner defined? maybe yes after moving to a separate crate
     signature_set: Account<'info, QuerySignatureSet>,
 
     #[account(
@@ -64,7 +64,7 @@ pub struct VerifyQuery<'info> {
             Root::SEED_PREFIX,
             // TODO: what are better ways to do this? maybe instruction input?
             &bytes.as_slice()[bytes.len()-32..],
-            &[0x00], //TODO: type - is there a way to ensure the seeds match? maybe take it as instruction input
+            &[0x00], //TODO: replace with enum
         ],
         bump
     )]
@@ -76,11 +76,17 @@ pub struct VerifyQuery<'info> {
         space = 8 + LatestRoot::INIT_SPACE,
         seeds = [
             LatestRoot::SEED_PREFIX,
-            &[0x00],
+            &[0x00], //TODO: replace with enum
         ],
         bump
     )]
     latest_root: Account<'info, LatestRoot>,
+
+    #[account(
+        seeds = [Config::SEED_PREFIX],
+        bump
+    )]
+    config: Account<'info, Config>,
 
     system_program: Program<'info, System>,
 }
@@ -180,8 +186,23 @@ pub fn verify_query(ctx: Context<VerifyQuery>, bytes: Vec<u8>) -> Result<()> {
     }
     .ok_or(SolanaWorldIDProgramError::InvalidResponseType)?;
 
-    // TODO: validate block number
-    // TODO: validate block time
+    let latest_root = ctx.accounts.latest_root.clone().into_inner();
+    require!(
+        chain_response.block_number > latest_root.read_block_number,
+        SolanaWorldIDProgramError::StaleBlockNum
+    );
+    let current_timestamp = u64::try_from(Clock::get()?.unix_timestamp)?;
+    let config = ctx.accounts.config.clone().into_inner();
+    let min_block_time = if config.allowed_update_staleness >= current_timestamp {
+        0
+    } else {
+        current_timestamp - config.allowed_update_staleness
+    };
+    let read_block_time_in_secs = chain_response.block_time / 1_000_000;
+    require!(
+        read_block_time_in_secs >= min_block_time,
+        SolanaWorldIDProgramError::StaleBlockTime
+    );
 
     require!(
         chain_response.results.len() == 1,
@@ -193,13 +214,11 @@ pub fn verify_query(ctx: Context<VerifyQuery>, bytes: Vec<u8>) -> Result<()> {
         SolanaWorldIDProgramError::InvalidResponseResultLength
     );
 
-    msg!("result: {:?}", result);
-
     ctx.accounts.root.set_inner(Root {
         read_block_number: chain_response.block_number,
         read_block_hash: chain_response.block_hash,
         read_block_time: chain_response.block_time,
-        expiry_time: (chain_response.block_time / 1_000_000) + (24 * 60 * 60), // TODO: replace with config expiry
+        expiry_time: read_block_time_in_secs + config.root_expiry,
         payer: ctx.accounts.payer.key(),
     });
 

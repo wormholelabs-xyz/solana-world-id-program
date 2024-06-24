@@ -221,12 +221,18 @@ pub enum SolanaWorldIDProgramError {
     #[msg("InvalidResponseChainId")]
     InvalidResponseChainId = 0x3008,
 
+    #[msg("StaleBlockNum")]
+    StaleBlockNum = 0x3009,
+
+    #[msg("StaleBlockTime")]
+    StaleBlockTime = 0x3010,
+
     #[msg("InvalidResponseType")]
-    InvalidResponseType = 0x3009,
+    InvalidResponseType = 0x3011,
 
     #[msg("InvalidResponseResultsLength")]
-    InvalidResponseResultsLength = 0x3010,
+    InvalidResponseResultsLength = 0x3012,
 
     #[msg("InvalidResponseResultLength")]
-    InvalidResponseResultLength = 0x3011,
+    InvalidResponseResultLength = 0x3013,
 }

@@ -17,6 +17,7 @@ import { deriveGuardianSetKey } from "./helpers/guardianSet";
 import { createVerifySignaturesInstructions } from "./helpers/verifySignature";
 import { deriveRootKey } from "./helpers/root";
 import { deriveLatestRootKey } from "./helpers/latestRoot";
+import { BN } from "bn.js";
 
 use(chaiAsPromised);
 
@@ -52,7 +53,21 @@ describe("solana-world-id-program", () => {
   let mockQueryResponse: QueryProxyQueryResponse = null;
 
   it("Is initialized!", async () => {
-    await expect(program.methods.initialize().rpc()).to.be.fulfilled;
+    const programData = anchor.web3.PublicKey.findProgramAddressSync(
+      [program.programId.toBuffer()],
+      new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+    )[0];
+    await expect(
+      program.methods
+        .initialize({
+          rootExpiry: new BN(24 * 60 * 60), // 24 hours
+          allowedUpdateStaleness: new BN(5 * 60), // 5 mins
+        })
+        .accountsPartial({
+          programData,
+        })
+        .rpc()
+    ).to.be.fulfilled;
   });
 
   it("Verifies mock signatures!", async () => {
