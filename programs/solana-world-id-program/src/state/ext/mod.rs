@@ -1,6 +1,5 @@
 pub use anchor_lang::prelude::*;
-
-pub mod wormhole;
+use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
 #[derive(Debug, AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct WormholeGuardianSet {
@@ -20,7 +19,7 @@ pub struct WormholeGuardianSet {
 // TODO: does there need to be some sort of seed check as well?
 impl Owner for WormholeGuardianSet {
     fn owner() -> Pubkey {
-        wormhole::program::Wormhole::id()
+        CORE_BRIDGE_PROGRAM_ID
     }
 }
 

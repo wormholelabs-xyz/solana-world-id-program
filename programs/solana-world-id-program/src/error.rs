@@ -18,6 +18,7 @@ use anchor_lang::prelude::error_code;
 /// * \>= 0x1000 -- Core Bridge Anchor Instruction.
 /// * \>= 0x2000 -- Core Bridge SDK.
 /// * \>= 0x3000 -- Query Response SDK.
+/// * \>= 0x4000 -- Admin Instructions.
 ///
 /// NOTE: All of these error codes when triggered are offset by `ERROR_CODE_OFFSET` (6000). So for
 /// example, `U64Overflow` will return as 6006.
@@ -235,4 +236,7 @@ pub enum SolanaWorldIDProgramError {
 
     #[msg("InvalidResponseResultLength")]
     InvalidResponseResultLength = 0x3013,
+
+    #[msg("InvalidPendingOwner")]
+    InvalidPendingOwner = 0x4000,
 }

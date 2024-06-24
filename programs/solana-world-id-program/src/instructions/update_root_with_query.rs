@@ -1,6 +1,6 @@
 use crate::{
     error::SolanaWorldIDProgramError,
-    state::{wormhole, Config, LatestRoot, QuerySignatureSet, Root, WormholeGuardianSet},
+    state::{Config, LatestRoot, QuerySignatureSet, Root, WormholeGuardianSet},
 };
 use anchor_lang::{
     prelude::*,
@@ -10,6 +10,7 @@ use wormhole_query_sdk::{
     structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse},
     MESSAGE_PREFIX, QUERY_MESSAGE_LEN,
 };
+use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 
 // TODO: move to config acct so these are more easily visible to the public
 // Or consider a view method
@@ -48,7 +49,7 @@ pub struct UpdateRootWithQuery<'info> {
             signature_set.guardian_set_index.to_be_bytes().as_ref()
         ],
         bump,
-        seeds::program = wormhole::program::Wormhole::id()
+        seeds::program = CORE_BRIDGE_PROGRAM_ID
     )]
     guardian_set: Account<'info, WormholeGuardianSet>,
 

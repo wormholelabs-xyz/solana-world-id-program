@@ -27,7 +27,23 @@ pub mod solana_world_id_program {
     pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>) -> Result<()> {
         instructions::update_root_with_query(ctx, bytes)
     }
-}
 
-#[macro_use]
-extern crate cfg_if;
+    pub fn transfer_ownership(ctx: Context<TransferOwnership>) -> Result<()> {
+        instructions::transfer_ownership(ctx)
+    }
+
+    pub fn claim_ownership(ctx: Context<ClaimOwnership>) -> Result<()> {
+        instructions::claim_ownership(ctx)
+    }
+
+    pub fn set_root_expiry(ctx: Context<SetRootExpiry>, root_expiry: u64) -> Result<()> {
+        instructions::set_root_expiry(ctx, root_expiry)
+    }
+
+    pub fn set_allowed_update_staleness(
+        ctx: Context<SetAllowedUpdateStaleness>,
+        allowed_update_staleness: u64,
+    ) -> Result<()> {
+        instructions::set_allowed_update_staleness(ctx, allowed_update_staleness)
+    }
+}

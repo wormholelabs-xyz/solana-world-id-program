@@ -1591,8 +1591,9 @@ name = "solana-world-id-program"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
- "cfg-if",
  "wormhole-query-sdk",
+ "wormhole-solana-consts",
+ "wormhole-solana-utils",
 ]
 
 [[package]]
@@ -1940,6 +1941,26 @@ version = "0.0.1"
 source = "git+https://github.com/wormholelabs-xyz/wormhole-query-sdk-rust?rev=0f34cb470f4e3137b53aa91adcbb0c7def280925#0f34cb470f4e3137b53aa91adcbb0c7def280925"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "wormhole-solana-consts"
+version = "0.3.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95ae70b3233a1d2e799276528ad7ec0a55c9929f8eae41683a5d6f0e8ba37649"
+dependencies = [
+ "cfg-if",
+ "solana-program",
+]
+
+[[package]]
+name = "wormhole-solana-utils"
+version = "0.3.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d49bd1af023d73c6d6538cb6d9ea86111dac109ae134f45f7930425e372bf9cf"
+dependencies = [
+ "anchor-lang",
+ "solana-program",
 ]
 
 [[package]]
