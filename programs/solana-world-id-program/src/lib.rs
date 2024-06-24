@@ -17,15 +17,15 @@ pub mod solana_world_id_program {
         instructions::initialize(ctx, args)
     }
 
-    pub fn verify_signatures(
-        ctx: Context<VerifySignatures>,
+    pub fn verify_query_signatures(
+        ctx: Context<VerifyQuerySignatures>,
         signer_indices: [i8; 19],
     ) -> Result<()> {
-        instructions::verify_signatures(ctx, signer_indices)
+        instructions::verify_query_signatures(ctx, signer_indices)
     }
 
-    pub fn verify_query(ctx: Context<VerifyQuery>, bytes: Vec<u8>) -> Result<()> {
-        instructions::verify_query(ctx, bytes)
+    pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>) -> Result<()> {
+        instructions::update_root_with_query(ctx, bytes)
     }
 }
 

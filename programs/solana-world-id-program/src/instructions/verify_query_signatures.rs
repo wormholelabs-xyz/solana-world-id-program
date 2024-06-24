@@ -34,7 +34,7 @@ struct SigVerifyParameters {
 }
 
 #[derive(Accounts)]
-pub struct VerifySignatures<'info> {
+pub struct VerifyQuerySignatures<'info> {
     #[account(mut)]
     payer: Signer<'info>,
 
@@ -61,7 +61,10 @@ pub struct VerifySignatures<'info> {
     system_program: Program<'info, System>,
 }
 
-pub fn verify_signatures(ctx: Context<VerifySignatures>, signer_indices: [i8; 19]) -> Result<()> {
+pub fn verify_query_signatures(
+    ctx: Context<VerifyQuerySignatures>,
+    signer_indices: [i8; 19],
+) -> Result<()> {
     // It would have been nice to be able to perform this check in `access_control`, but there
     // is no data from the instruction sysvar loaded by that point. We have to load it and perform
     // the safety checks in this instruction handler.

@@ -14,7 +14,7 @@ import { expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
-import { createVerifySignaturesInstructions } from "./helpers/verifySignature";
+import { createVerifyQuerySignaturesInstructions } from "./helpers/verifySignature";
 import { deriveRootKey } from "./helpers/root";
 import { deriveLatestRootKey } from "./helpers/latestRoot";
 import { BN } from "bn.js";
@@ -103,7 +103,7 @@ describe("solana-world-id-program", () => {
       );
     }
 
-    const instructions = await createVerifySignaturesInstructions(
+    const instructions = await createVerifyQuerySignaturesInstructions(
       p.connection,
       program,
       coreBridgeAddress,
@@ -147,7 +147,7 @@ describe("solana-world-id-program", () => {
     const latestRoot = deriveLatestRootKey(program.programId, 0);
     await expect(
       program.methods
-        .verifyQuery(Buffer.from(mockQueryResponse.bytes, "hex"))
+        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"))
         .accountsPartial({
           guardianSet: deriveGuardianSetKey(
             coreBridgeAddress,

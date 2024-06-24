@@ -36,7 +36,7 @@ pub fn quorum(num_guardians: usize) -> usize {
 
 #[derive(Accounts)]
 #[instruction(bytes: Vec<u8>)]
-pub struct VerifyQuery<'info> {
+pub struct UpdateRootWithQuery<'info> {
     #[account(mut)]
     payer: Signer<'info>,
 
@@ -91,7 +91,7 @@ pub struct VerifyQuery<'info> {
     system_program: Program<'info, System>,
 }
 
-impl<'info> VerifyQuery<'info> {
+impl<'info> UpdateRootWithQuery<'info> {
     pub fn constraints(ctx: &Context<Self>, bytes: &Vec<u8>) -> Result<()> {
         let guardian_set = ctx.accounts.guardian_set.clone().into_inner();
 
@@ -140,8 +140,8 @@ impl<'info> VerifyQuery<'info> {
     }
 }
 
-#[access_control(VerifyQuery::constraints(&ctx, &bytes))]
-pub fn verify_query(ctx: Context<VerifyQuery>, bytes: Vec<u8>) -> Result<()> {
+#[access_control(UpdateRootWithQuery::constraints(&ctx, &bytes))]
+pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>) -> Result<()> {
     let response = QueryResponse::deserialize(&bytes)
         .map_err(|_| SolanaWorldIDProgramError::FailedToParseResponse)?;
     require!(

@@ -8,7 +8,7 @@ import { responseSignaturesToGuardianSignature } from "./GuardianSignature";
 import { createSecp256k1Instruction } from "./secp256k1";
 import { SolanaWorldIdProgram } from "../../target/types/solana_world_id_program";
 
-export async function createVerifySignaturesInstructions(
+export async function createVerifyQuerySignaturesInstructions(
   connection: anchor.web3.Connection,
   program: anchor.Program<SolanaWorldIdProgram>,
   wormholeProgramId: anchor.web3.PublicKey,
@@ -67,7 +67,7 @@ export async function createVerifySignaturesInstructions(
     instructions.push(createSecp256k1Instruction(signatures, keys, hash));
 
     const ix = await program.methods
-      .verifySignatures(signatureStatus)
+      .verifyQuerySignatures(signatureStatus)
       .accounts({
         payer,
         guardianSet: deriveGuardianSetKey(wormholeProgramId, guardianSetIndex),
