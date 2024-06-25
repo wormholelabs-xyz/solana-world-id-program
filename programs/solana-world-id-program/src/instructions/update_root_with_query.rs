@@ -55,6 +55,7 @@ pub struct UpdateRootWithQuery<'info> {
 
     /// Stores signature validation from Sig Verify native program.
     /// TODO: does this need to have an owner defined? maybe yes after moving to a separate crate
+    #[account(mut, has_one = refund_recipient, close = refund_recipient)]
     signature_set: Account<'info, QuerySignatureSet>,
 
     #[account(
@@ -88,6 +89,10 @@ pub struct UpdateRootWithQuery<'info> {
         bump
     )]
     config: Account<'info, Config>,
+
+    /// CHECK: This account is the refund recipient for the above signature_set
+    #[account(address = signature_set.refund_recipient)]
+    refund_recipient: AccountInfo<'info>,
 
     system_program: Program<'info, System>,
 }

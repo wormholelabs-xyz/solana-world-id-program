@@ -9,10 +9,7 @@ crate-type = ["cdylib", "lib"]
 name = "solana_world_id_program"
 
 [features]
-default = ["mainnet"]
-mainnet = []
-solana-devnet = []
-tilt-devnet = []
+default = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

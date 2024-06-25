@@ -133,6 +133,7 @@ pub fn verify_query_signatures(
             sig_verify_successes: vec![false; guardians.len()],
             message,
             guardian_set_index: guardian_set.index,
+            refund_recipient: ctx.accounts.payer.key(),
         });
     }
 

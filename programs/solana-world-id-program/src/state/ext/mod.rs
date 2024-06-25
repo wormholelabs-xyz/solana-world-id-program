@@ -23,7 +23,7 @@ impl Owner for WormholeGuardianSet {
     }
 }
 
-// TODO: is this the correct fix for anchor ^0.30.0?
+// workaround for anchor 0.30.1
 // https://github.com/coral-xyz/anchor/blob/e6d7dafe12da661a36ad1b4f3b5970e8986e5321/spl/src/idl_build.rs#L11
 impl anchor_lang::Discriminator for WormholeGuardianSet {
     const DISCRIMINATOR: [u8; 8] = [0; 8];

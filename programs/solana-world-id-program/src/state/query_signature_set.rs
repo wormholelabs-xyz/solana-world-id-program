@@ -14,6 +14,9 @@ pub struct QuerySignatureSet {
 
     /// Index of the guardian set
     pub guardian_set_index: u32,
+
+    /// Payer of this signature set account, used for reimbursements upon cleanup.
+    pub refund_recipient: Pubkey,
 }
 
 impl QuerySignatureSet {

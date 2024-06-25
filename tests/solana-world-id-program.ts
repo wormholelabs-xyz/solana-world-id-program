@@ -166,4 +166,10 @@ describe("solana-world-id-program", () => {
     // TODO: verify contents
     // console.log(latestRootAcct);
   });
+
+  it("Closed the signature set!", async () => {
+    await expect(
+      program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
+    ).to.be.rejectedWith("Account does not exist or has no data");
+  });
 });
