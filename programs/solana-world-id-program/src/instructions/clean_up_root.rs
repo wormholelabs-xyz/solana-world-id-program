@@ -8,14 +8,14 @@ pub struct CleanUpRoot<'info> {
     payer: Signer<'info>,
 
     #[account(
-        mut, 
+        mut,
         seeds = [
             Root::SEED_PREFIX,
             &root_hash,
             &verification_type,
         ],
         bump = root.bump,
-        has_one = refund_recipient, 
+        has_one = refund_recipient,
         close = refund_recipient
     )]
     root: Account<'info, Root>,
