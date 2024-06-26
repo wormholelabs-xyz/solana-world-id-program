@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Debug, InitSpace)]
 pub struct Root {
+    pub bump: u8,
     /// Block number from which the root was read.
     pub read_block_number: u64,
     /// Block hash from which the root was read.
@@ -17,6 +18,7 @@ pub struct Root {
 
 impl Root {
     pub const SEED_PREFIX: &'static [u8] = b"Root";
+    pub const VERIFICATION_TYPE_QUERY: &'static [u8] = &[0x00];
 
     pub fn is_active(&self, timestamp: &u64) -> bool {
         self.expiry_time == 0 || self.expiry_time >= *timestamp

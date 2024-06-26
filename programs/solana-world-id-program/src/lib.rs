@@ -24,16 +24,28 @@ pub mod solana_world_id_program {
         instructions::verify_query_signatures(ctx, signer_indices)
     }
 
-    pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>) -> Result<()> {
-        instructions::update_root_with_query(ctx, bytes)
+    pub fn update_root_with_query(
+        ctx: Context<UpdateRootWithQuery>,
+        bytes: Vec<u8>,
+        root_hash: [u8; 32],
+    ) -> Result<()> {
+        instructions::update_root_with_query(ctx, bytes, root_hash)
     }
 
-    pub fn clean_up_root(ctx: Context<CleanUpRoot>) -> Result<()> {
-        instructions::clean_up_root(ctx)
+    pub fn clean_up_root(
+        ctx: Context<CleanUpRoot>,
+        root_hash: [u8; 32],
+        verification_type: [u8; 1],
+    ) -> Result<()> {
+        instructions::clean_up_root(ctx, root_hash, verification_type)
     }
 
-    pub fn update_root_expiry(ctx: Context<UpdateRootExpiry>) -> Result<()> {
-        instructions::update_root_expiry(ctx)
+    pub fn update_root_expiry(
+        ctx: Context<UpdateRootExpiry>,
+        root_hash: [u8; 32],
+        verification_type: [u8; 1],
+    ) -> Result<()> {
+        instructions::update_root_expiry(ctx, root_hash, verification_type)
     }
 
     pub fn transfer_ownership(ctx: Context<TransferOwnership>) -> Result<()> {

@@ -56,6 +56,7 @@ describe("solana-world-id-program", () => {
 
   const validMockSignatureSet = anchor.web3.Keypair.generate();
   let mockQueryResponse: QueryProxyQueryResponse = null;
+  let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
 
   it("Is initialized!", async () => {
@@ -148,24 +149,23 @@ describe("solana-world-id-program", () => {
   it("Verifies mock queries!", async () => {
     const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
       .response as EthCallQueryResponse;
-    const rootHash = response.results[0].substring(2);
+    rootHash = response.results[0].substring(2);
     rootKey = deriveRootKey(program.programId, Buffer.from(rootHash, "hex"), 0);
     const latestRootKey = deriveLatestRootKey(program.programId, 0);
     await expect(
       program.methods
-        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"))
+        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+          ...Buffer.from(rootHash, "hex"),
+        ])
         .accountsPartial({
           guardianSet: deriveGuardianSetKey(
             coreBridgeAddress,
             mockGuardianSetIndex
           ),
           signatureSet: validMockSignatureSet.publicKey,
-          root: rootKey,
-          latestRoot: latestRootKey,
         })
         .rpc()
     ).to.be.fulfilled;
-
     const root = await program.account.root.fetch(rootKey);
     assert(
       Buffer.from(root.readBlockHash).toString("hex") ===
@@ -210,7 +210,7 @@ describe("solana-world-id-program", () => {
       "readBlockNumber does not match"
     );
     assert(
-      latestRoot.root.equals(Buffer.from(rootHash, "hex")),
+      Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
       "root does not match"
     );
   });
@@ -223,34 +223,22 @@ describe("solana-world-id-program", () => {
 
   it("Rejects active root clean up!", async () => {
     await expect(
-      program.methods
-        .cleanUpRoot()
-        .accounts({
-          root: rootKey,
-        })
-        .rpc()
+      program.methods.cleanUpRoot([...Buffer.from(rootHash, "hex")], [0]).rpc()
     ).to.be.rejectedWith("RootUnexpired");
   });
 
   it("Rejects root expiry update noop!", async () => {
     await expect(
       program.methods
-        .updateRootExpiry()
-        .accounts({
-          root: rootKey,
-        })
+        .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
         .rpc()
     ).to.be.rejectedWith("NoopExpiryUpdate");
   });
 
   it("Updates expiry config!", async () => {
     const oneSecond = new BN(1);
-    await expect(
-      program.methods
-        .setRootExpiry(oneSecond)
-        .accounts({ config: deriveConfigKey(program.programId) })
-        .rpc()
-    ).to.be.fulfilled;
+    await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
+      .fulfilled;
     const config = await program.account.config.fetch(
       deriveConfigKey(program.programId)
     );
@@ -260,10 +248,7 @@ describe("solana-world-id-program", () => {
   it("Updates root expiry!", async () => {
     await expect(
       program.methods
-        .updateRootExpiry()
-        .accounts({
-          root: rootKey,
-        })
+        .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
         .rpc()
     ).to.be.fulfilled;
     const root = await program.account.root.fetch(rootKey);
@@ -278,19 +263,11 @@ describe("solana-world-id-program", () => {
 
   it("Cleans up expired roots!", async () => {
     await sleep(1000);
-    const p = anchor.getProvider();
-    console.log(await p.connection.getBalance(p.publicKey));
     await expect(
-      program.methods
-        .cleanUpRoot()
-        .accounts({
-          root: rootKey,
-        })
-        .rpc()
+      program.methods.cleanUpRoot([...Buffer.from(rootHash, "hex")], [0]).rpc()
     ).to.be.fulfilled;
     await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(
       "Account does not exist or has no data"
     );
-    console.log(await p.connection.getBalance(p.publicKey));
   });
 });

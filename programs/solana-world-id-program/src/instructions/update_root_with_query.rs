@@ -36,7 +36,7 @@ pub fn quorum(num_guardians: usize) -> usize {
 }
 
 #[derive(Accounts)]
-#[instruction(bytes: Vec<u8>)]
+#[instruction(bytes: Vec<u8>, root_hash: [u8; 32])]
 pub struct UpdateRootWithQuery<'info> {
     #[account(mut)]
     payer: Signer<'info>,
@@ -64,29 +64,26 @@ pub struct UpdateRootWithQuery<'info> {
         space = 8 + Root::INIT_SPACE,
         seeds = [
             Root::SEED_PREFIX,
-            // TODO: what are better ways to do this? maybe instruction input?
-            &bytes.as_slice()[bytes.len()-32..],
-            &[0x00], //TODO: replace with enum
+            &root_hash,
+            Root::VERIFICATION_TYPE_QUERY,
         ],
         bump
     )]
     root: Account<'info, Root>,
 
     #[account(
-        init_if_needed,
-        payer = payer,
-        space = 8 + LatestRoot::INIT_SPACE,
+        mut,
         seeds = [
             LatestRoot::SEED_PREFIX,
-            &[0x00], //TODO: replace with enum
+            Root::VERIFICATION_TYPE_QUERY,
         ],
-        bump
+        bump = latest_root.bump
     )]
     latest_root: Account<'info, LatestRoot>,
 
     #[account(
         seeds = [Config::SEED_PREFIX],
-        bump
+        bump = config.bump
     )]
     config: Account<'info, Config>,
 
@@ -147,7 +144,11 @@ impl<'info> UpdateRootWithQuery<'info> {
 }
 
 #[access_control(UpdateRootWithQuery::constraints(&ctx, &bytes))]
-pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>) -> Result<()> {
+pub fn update_root_with_query(
+    ctx: Context<UpdateRootWithQuery>,
+    bytes: Vec<u8>,
+    root_hash: [u8; 32],
+) -> Result<()> {
     let response = QueryResponse::deserialize(&bytes)
         .map_err(|_| SolanaWorldIDProgramError::FailedToParseResponse)?;
     require!(
@@ -222,8 +223,13 @@ pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>)
         result.len() == 32,
         SolanaWorldIDProgramError::InvalidResponseResultLength
     );
+    require!(
+        result.as_slice() == root_hash,
+        SolanaWorldIDProgramError::RootHashMismatch
+    );
 
     ctx.accounts.root.set_inner(Root {
+        bump: ctx.bumps.root,
         read_block_number: chain_response.block_number,
         read_block_hash: chain_response.block_hash,
         read_block_time: chain_response.block_time,
@@ -231,12 +237,10 @@ pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>)
         refund_recipient: ctx.accounts.payer.key(),
     });
 
-    ctx.accounts.latest_root.set_inner(LatestRoot {
-        read_block_number: chain_response.block_number,
-        read_block_hash: chain_response.block_hash,
-        read_block_time: chain_response.block_time,
-        root: result.to_vec(),
-    });
+    ctx.accounts.latest_root.read_block_number = chain_response.block_number;
+    ctx.accounts.latest_root.read_block_hash = chain_response.block_hash;
+    ctx.accounts.latest_root.read_block_time = chain_response.block_time;
+    ctx.accounts.latest_root.root = root_hash;
 
     Ok(())
 }

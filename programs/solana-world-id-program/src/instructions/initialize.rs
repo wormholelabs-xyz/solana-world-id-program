@@ -1,6 +1,6 @@
 use anchor_lang::{prelude::*, solana_program::bpf_loader_upgradeable};
 
-use crate::state::Config;
+use crate::state::{Config, LatestRoot, Root};
 
 #[derive(Accounts)]
 #[instruction(args: InitializeArgs)]
@@ -27,6 +27,18 @@ pub struct Initialize<'info> {
     )]
     config: Account<'info, Config>,
 
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + LatestRoot::INIT_SPACE,
+        seeds = [
+            LatestRoot::SEED_PREFIX,
+            Root::VERIFICATION_TYPE_QUERY,
+        ],
+        bump
+    )]
+    latest_root: Account<'info, LatestRoot>,
+
     system_program: Program<'info, System>,
 }
 
@@ -38,11 +50,14 @@ pub struct InitializeArgs {
 
 pub fn initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
     ctx.accounts.config.set_inner(Config {
+        bump: ctx.bumps.config,
         owner: ctx.accounts.deployer.key(),
         pending_owner: None,
         root_expiry: args.root_expiry,
         allowed_update_staleness: args.allowed_update_staleness,
     });
+
+    ctx.accounts.latest_root.bump = ctx.bumps.latest_root;
 
     Ok(())
 }

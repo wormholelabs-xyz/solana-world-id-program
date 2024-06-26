@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Debug, InitSpace)]
 pub struct Config {
-    // TODO: store bump
+    pub bump: u8,
     /// Owner of the program.
     pub owner: Pubkey,
     /// Pending next owner (before claiming ownership).

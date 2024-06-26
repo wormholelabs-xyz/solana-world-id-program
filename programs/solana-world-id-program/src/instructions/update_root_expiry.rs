@@ -5,21 +5,34 @@ use crate::{
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
+#[instruction(root_hash: [u8; 32], verification_type: [u8; 1])]
 pub struct UpdateRootExpiry<'info> {
     #[account(mut)]
     payer: Signer<'info>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            Root::SEED_PREFIX,
+            &root_hash,
+            &verification_type,
+        ],
+        bump = root.bump
+    )]
     root: Account<'info, Root>,
 
     #[account(
         seeds = [Config::SEED_PREFIX],
-        bump
+        bump = config.bump
     )]
     config: Account<'info, Config>,
 }
 
-pub fn update_root_expiry(ctx: Context<UpdateRootExpiry>) -> Result<()> {
+pub fn update_root_expiry(
+    ctx: Context<UpdateRootExpiry>,
+    _root_hash: [u8; 32],
+    _verification_type: [u8; 1],
+) -> Result<()> {
     let root = ctx.accounts.root.clone().into_inner();
     let config = ctx.accounts.config.clone().into_inner();
     let read_block_time_in_secs = root.read_block_time / 1_000_000;
