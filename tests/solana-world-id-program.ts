@@ -146,6 +146,24 @@ describe("solana-world-id-program", () => {
     ).to.be.fulfilled;
   });
 
+  it("Rejects a mismatched root hash!", async () => {
+    await expect(
+      program.methods
+        .updateRootWithQuery(
+          Buffer.from(mockQueryResponse.bytes, "hex"),
+          new Array(32).fill(0)
+        )
+        .accountsPartial({
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          signatureSet: validMockSignatureSet.publicKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith("RootHashMismatch");
+  });
+
   it("Verifies mock queries!", async () => {
     const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
       .response as EthCallQueryResponse;
