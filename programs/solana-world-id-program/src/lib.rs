@@ -28,6 +28,14 @@ pub mod solana_world_id_program {
         instructions::update_root_with_query(ctx, bytes)
     }
 
+    pub fn clean_up_root(ctx: Context<CleanUpRoot>) -> Result<()> {
+        instructions::clean_up_root(ctx)
+    }
+
+    pub fn update_root_expiry(ctx: Context<UpdateRootExpiry>) -> Result<()> {
+        instructions::update_root_expiry(ctx)
+    }
+
     pub fn transfer_ownership(ctx: Context<TransferOwnership>) -> Result<()> {
         instructions::transfer_ownership(ctx)
     }

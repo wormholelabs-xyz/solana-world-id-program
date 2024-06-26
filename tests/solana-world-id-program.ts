@@ -10,7 +10,7 @@ import {
   QueryResponse,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import axios from "axios";
-import { expect, use } from "chai";
+import { assert, expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 import { deriveGuardianSetKey } from "./helpers/guardianSet";
@@ -18,6 +18,7 @@ import { createVerifyQuerySignaturesInstructions } from "./helpers/verifySignatu
 import { deriveRootKey } from "./helpers/root";
 import { deriveLatestRootKey } from "./helpers/latestRoot";
 import { BN } from "bn.js";
+import { deriveConfigKey } from "./helpers/config";
 
 use(chaiAsPromised);
 
@@ -36,6 +37,10 @@ const ETH_WORLD_ID_IDENTITY_MANAGER =
 // web3.eth.abi.encodeFunctionSignature("latestRoot()");
 const LATEST_ROOT_SIGNATURE = "0xd7b0fef1";
 
+const sleep = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
 describe("solana-world-id-program", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
@@ -51,23 +56,39 @@ describe("solana-world-id-program", () => {
 
   const validMockSignatureSet = anchor.web3.Keypair.generate();
   let mockQueryResponse: QueryProxyQueryResponse = null;
+  let rootKey: anchor.web3.PublicKey = null;
 
   it("Is initialized!", async () => {
     const programData = anchor.web3.PublicKey.findProgramAddressSync(
       [program.programId.toBuffer()],
       new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
     )[0];
+    const twentyFourHours = new BN(24 * 60 * 60);
+    const fiveMinutes = new BN(5 * 60);
     await expect(
       program.methods
         .initialize({
-          rootExpiry: new BN(24 * 60 * 60), // 24 hours
-          allowedUpdateStaleness: new BN(5 * 60), // 5 mins
+          rootExpiry: twentyFourHours,
+          allowedUpdateStaleness: fiveMinutes,
         })
         .accountsPartial({
           programData,
         })
         .rpc()
     ).to.be.fulfilled;
+    const config = await program.account.config.fetch(
+      deriveConfigKey(program.programId)
+    );
+    assert(
+      config.allowedUpdateStaleness.eq(fiveMinutes),
+      "allowed update staleness does not match"
+    );
+    assert(
+      config.owner.equals(anchor.getProvider().publicKey),
+      "owner does not match"
+    );
+    assert(config.pendingOwner === null, "pending owner is set");
+    assert(config.rootExpiry.eq(twentyFourHours), "root expiry does not match");
   });
 
   it("Verifies mock signatures!", async () => {
@@ -93,16 +114,6 @@ describe("solana-world-id-program", () => {
       ),
     ]);
     mockQueryResponse = await mock.mock(query);
-    {
-      const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
-        .response as EthCallQueryResponse;
-      console.log(
-        `Queried World ID root: ${BigInt(response.results[0])} (${
-          response.results[0]
-        })`
-      );
-    }
-
     const instructions = await createVerifyQuerySignaturesInstructions(
       p.connection,
       program,
@@ -135,16 +146,11 @@ describe("solana-world-id-program", () => {
   });
 
   it("Verifies mock queries!", async () => {
-    const rootHash = mockQueryResponse.bytes.substring(
-      mockQueryResponse.bytes.length - 64
-    );
-    console.log(`Verifying root: ${BigInt(`0x${rootHash}`)} (0x${rootHash})`);
-    const root = deriveRootKey(
-      program.programId,
-      Buffer.from(rootHash, "hex"),
-      0
-    );
-    const latestRoot = deriveLatestRootKey(program.programId, 0);
+    const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
+      .response as EthCallQueryResponse;
+    const rootHash = response.results[0].substring(2);
+    rootKey = deriveRootKey(program.programId, Buffer.from(rootHash, "hex"), 0);
+    const latestRootKey = deriveLatestRootKey(program.programId, 0);
     await expect(
       program.methods
         .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"))
@@ -154,22 +160,137 @@ describe("solana-world-id-program", () => {
             mockGuardianSetIndex
           ),
           signatureSet: validMockSignatureSet.publicKey,
-          root,
-          latestRoot,
+          root: rootKey,
+          latestRoot: latestRootKey,
         })
         .rpc()
     ).to.be.fulfilled;
-    const rootAcct = await program.account.root.fetch(root);
-    // TODO: verify contents
-    console.log(rootAcct);
-    const latestRootAcct = await program.account.latestRoot.fetch(latestRoot);
-    // TODO: verify contents
-    // console.log(latestRootAcct);
+
+    const root = await program.account.root.fetch(rootKey);
+    assert(
+      Buffer.from(root.readBlockHash).toString("hex") ===
+        response.blockHash.substring(2),
+      "readBlockHash does not match"
+    );
+    assert(
+      root.readBlockNumber.eq(new BN(response.blockNumber.toString())),
+      "readBlockNumber does not match"
+    );
+    assert(
+      root.readBlockTime.eq(new BN(response.blockTime.toString())),
+      "readBlockNumber does not match"
+    );
+    assert(
+      root.expiryTime.eq(
+        new BN(
+          (
+            response.blockTime / BigInt(1_000_000) +
+            BigInt(24 * 60 * 60)
+          ).toString()
+        )
+      ),
+      "expiryTime is incorrect"
+    );
+    assert(
+      root.refundRecipient.equals(anchor.getProvider().publicKey),
+      "refundRecipient does not match"
+    );
+    const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
+    assert(
+      Buffer.from(latestRoot.readBlockHash).toString("hex") ===
+        response.blockHash.substring(2),
+      "readBlockHash does not match"
+    );
+    assert(
+      latestRoot.readBlockNumber.eq(new BN(response.blockNumber.toString())),
+      "readBlockNumber does not match"
+    );
+    assert(
+      latestRoot.readBlockTime.eq(new BN(response.blockTime.toString())),
+      "readBlockNumber does not match"
+    );
+    assert(
+      latestRoot.root.equals(Buffer.from(rootHash, "hex")),
+      "root does not match"
+    );
   });
 
   it("Closed the signature set!", async () => {
     await expect(
       program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
     ).to.be.rejectedWith("Account does not exist or has no data");
+  });
+
+  it("Rejects active root clean up!", async () => {
+    await expect(
+      program.methods
+        .cleanUpRoot()
+        .accounts({
+          root: rootKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith("RootUnexpired");
+  });
+
+  it("Rejects root expiry update noop!", async () => {
+    await expect(
+      program.methods
+        .updateRootExpiry()
+        .accounts({
+          root: rootKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith("NoopExpiryUpdate");
+  });
+
+  it("Updates expiry config!", async () => {
+    const oneSecond = new BN(1);
+    await expect(
+      program.methods
+        .setRootExpiry(oneSecond)
+        .accounts({ config: deriveConfigKey(program.programId) })
+        .rpc()
+    ).to.be.fulfilled;
+    const config = await program.account.config.fetch(
+      deriveConfigKey(program.programId)
+    );
+    assert(config.rootExpiry.eq(oneSecond), "config does not match");
+  });
+
+  it("Updates root expiry!", async () => {
+    await expect(
+      program.methods
+        .updateRootExpiry()
+        .accounts({
+          root: rootKey,
+        })
+        .rpc()
+    ).to.be.fulfilled;
+    const root = await program.account.root.fetch(rootKey);
+    assert(
+      root.readBlockTime
+        .div(new BN(1_000_000))
+        .add(new BN(1))
+        .eq(root.expiryTime),
+      "root not updated correctly"
+    );
+  });
+
+  it("Cleans up expired roots!", async () => {
+    await sleep(1000);
+    const p = anchor.getProvider();
+    console.log(await p.connection.getBalance(p.publicKey));
+    await expect(
+      program.methods
+        .cleanUpRoot()
+        .accounts({
+          root: rootKey,
+        })
+        .rpc()
+    ).to.be.fulfilled;
+    await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(
+      "Account does not exist or has no data"
+    );
+    console.log(await p.connection.getBalance(p.publicKey));
   });
 });

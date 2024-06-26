@@ -237,6 +237,12 @@ pub enum SolanaWorldIDProgramError {
     #[msg("InvalidResponseResultLength")]
     InvalidResponseResultLength = 0x3013,
 
+    #[msg("NoopExpiryUpdate")]
+    NoopExpiryUpdate = 0x3014,
+
+    #[msg("RootUnexpired")]
+    RootUnexpired = 0x3015,
+
     #[msg("InvalidPendingOwner")]
     InvalidPendingOwner = 0x4000,
 }

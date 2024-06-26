@@ -197,7 +197,10 @@ pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>)
         chain_response.block_number > latest_root.read_block_number,
         SolanaWorldIDProgramError::StaleBlockNum
     );
-    let current_timestamp = u64::try_from(Clock::get()?.unix_timestamp)?;
+    let current_timestamp = Clock::get()?
+        .unix_timestamp
+        .try_into()
+        .expect("timestamp underflow");
     let config = ctx.accounts.config.clone().into_inner();
     let min_block_time = if config.allowed_update_staleness >= current_timestamp {
         0
@@ -225,7 +228,7 @@ pub fn update_root_with_query(ctx: Context<UpdateRootWithQuery>, bytes: Vec<u8>)
         read_block_hash: chain_response.block_hash,
         read_block_time: chain_response.block_time,
         expiry_time: read_block_time_in_secs + config.root_expiry,
-        payer: ctx.accounts.payer.key(),
+        refund_recipient: ctx.accounts.payer.key(),
     });
 
     ctx.accounts.latest_root.set_inner(LatestRoot {

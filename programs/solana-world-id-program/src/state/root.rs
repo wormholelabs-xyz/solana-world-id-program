@@ -12,9 +12,13 @@ pub struct Root {
     /// Time (in seconds) after which this root should be considered expired.
     pub expiry_time: u64,
     /// Payer of this root account, used for reimbursements upon cleanup.
-    pub payer: Pubkey,
+    pub refund_recipient: Pubkey,
 }
 
 impl Root {
     pub const SEED_PREFIX: &'static [u8] = b"Root";
+
+    pub fn is_active(&self, timestamp: &u64) -> bool {
+        self.expiry_time == 0 || self.expiry_time >= *timestamp
+    }
 }

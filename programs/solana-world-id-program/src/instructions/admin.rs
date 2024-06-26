@@ -18,6 +18,8 @@ pub struct TransferOwnership<'info> {
     #[account(
         mut,
         has_one = owner,
+        seeds = [Config::SEED_PREFIX],
+        bump
     )]
     pub config: Account<'info, Config>,
 
@@ -73,7 +75,9 @@ pub struct ClaimOwnership<'info> {
         constraint = (
             config.pending_owner == Some(new_owner.key())
             || config.owner == new_owner.key()
-        ) @ SolanaWorldIDProgramError::InvalidPendingOwner
+        ) @ SolanaWorldIDProgramError::InvalidPendingOwner,
+        seeds = [Config::SEED_PREFIX],
+        bump
     )]
     pub config: Account<'info, Config>,
 
@@ -125,6 +129,8 @@ pub struct SetRootExpiry<'info> {
     #[account(
         mut,
         has_one = owner,
+        seeds = [Config::SEED_PREFIX],
+        bump
     )]
     pub config: Account<'info, Config>,
 }
@@ -142,6 +148,8 @@ pub struct SetAllowedUpdateStaleness<'info> {
     #[account(
         mut,
         has_one = owner,
+        seeds = [Config::SEED_PREFIX],
+        bump
     )]
     pub config: Account<'info, Config>,
 }

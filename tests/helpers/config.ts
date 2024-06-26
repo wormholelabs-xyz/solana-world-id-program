@@ -2,6 +2,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { getAccountData } from "./utils/account";
 
+export function deriveConfigKey(
+  worldIdProgramId: anchor.web3.PublicKey
+): anchor.web3.PublicKey {
+  return anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("Config")],
+    worldIdProgramId
+  )[0];
+}
+
 export function deriveWormholeBridgeDataKey(
   wormholeProgramId: anchor.web3.PublicKey
 ): anchor.web3.PublicKey {
