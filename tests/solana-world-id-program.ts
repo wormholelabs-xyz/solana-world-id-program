@@ -24,8 +24,7 @@ use(chaiAsPromised);
 
 // borrowed from https://github.com/wormhole-foundation/wormhole-circle-integration/blob/solana/integration/solana/ts/tests/helpers/consts.ts
 const PAYER_PRIVATE_KEY = Buffer.from(
-  "7037e963e55b4455cf3f0a2e670031fa16bd1ea79d921a94af9bd46856b6b9c00c1a5886fe1093df9fc438c296f9f7275b7718b6bc0e156d8d336c58f083996d",
-  "hex"
+  require("./keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json")
 );
 
 const ETH_NODE_URL = "https://ethereum-rpc.publicnode.com";
@@ -56,6 +55,7 @@ describe("solana-world-id-program", () => {
 
   const validMockSignatureSet = anchor.web3.Keypair.generate();
   let mockQueryResponse: QueryProxyQueryResponse = null;
+  let mockEthCallQueryResponse: EthCallQueryResponse = null;
   let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
 
@@ -92,9 +92,7 @@ describe("solana-world-id-program", () => {
     assert(config.rootExpiry.eq(twentyFourHours), "root expiry does not match");
   });
 
-  it("Verifies mock signatures!", async () => {
-    const p = anchor.getProvider();
-    const payer = anchor.web3.Keypair.fromSecretKey(PAYER_PRIVATE_KEY);
+  it("Mocks query!", async () => {
     const mock = new QueryProxyMock({
       [ETH_CHAIN_ID]: ETH_NODE_URL,
     });
@@ -115,6 +113,15 @@ describe("solana-world-id-program", () => {
       ),
     ]);
     mockQueryResponse = await mock.mock(query);
+    mockEthCallQueryResponse = QueryResponse.from(mockQueryResponse.bytes)
+      .responses[0].response as EthCallQueryResponse;
+    rootHash = mockEthCallQueryResponse.results[0].substring(2);
+    rootKey = deriveRootKey(program.programId, Buffer.from(rootHash, "hex"), 0);
+  });
+
+  it("Verifies mock signatures!", async () => {
+    const p = anchor.getProvider();
+    const payer = anchor.web3.Keypair.fromSecretKey(PAYER_PRIVATE_KEY);
     const instructions = await createVerifyQuerySignaturesInstructions(
       p.connection,
       program,
@@ -164,11 +171,50 @@ describe("solana-world-id-program", () => {
     ).to.be.rejectedWith("RootHashMismatch");
   });
 
+  it("Updates staleness config!", async () => {
+    const zeroSeconds = new BN(0);
+    await expect(program.methods.setAllowedUpdateStaleness(zeroSeconds).rpc())
+      .to.be.fulfilled;
+    const config = await program.account.config.fetch(
+      deriveConfigKey(program.programId)
+    );
+    assert(
+      config.allowedUpdateStaleness.eq(zeroSeconds),
+      "config does not match"
+    );
+  });
+
+  it("Rejects a stale root update!", async () => {
+    await expect(
+      program.methods
+        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+          ...Buffer.from(rootHash, "hex"),
+        ])
+        .accountsPartial({
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          signatureSet: validMockSignatureSet.publicKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith("StaleBlockTime");
+  });
+
+  it("Updates staleness config back!", async () => {
+    const fiveMinutes = new BN(5 * 60);
+    await expect(program.methods.setAllowedUpdateStaleness(fiveMinutes).rpc())
+      .to.be.fulfilled;
+    const config = await program.account.config.fetch(
+      deriveConfigKey(program.programId)
+    );
+    assert(
+      config.allowedUpdateStaleness.eq(fiveMinutes),
+      "config does not match"
+    );
+  });
+
   it("Verifies mock queries!", async () => {
-    const response = QueryResponse.from(mockQueryResponse.bytes).responses[0]
-      .response as EthCallQueryResponse;
-    rootHash = response.results[0].substring(2);
-    rootKey = deriveRootKey(program.programId, Buffer.from(rootHash, "hex"), 0);
     const latestRootKey = deriveLatestRootKey(program.programId, 0);
     await expect(
       program.methods
@@ -187,22 +233,26 @@ describe("solana-world-id-program", () => {
     const root = await program.account.root.fetch(rootKey);
     assert(
       Buffer.from(root.readBlockHash).toString("hex") ===
-        response.blockHash.substring(2),
+        mockEthCallQueryResponse.blockHash.substring(2),
       "readBlockHash does not match"
     );
     assert(
-      root.readBlockNumber.eq(new BN(response.blockNumber.toString())),
+      root.readBlockNumber.eq(
+        new BN(mockEthCallQueryResponse.blockNumber.toString())
+      ),
       "readBlockNumber does not match"
     );
     assert(
-      root.readBlockTime.eq(new BN(response.blockTime.toString())),
+      root.readBlockTime.eq(
+        new BN(mockEthCallQueryResponse.blockTime.toString())
+      ),
       "readBlockNumber does not match"
     );
     assert(
       root.expiryTime.eq(
         new BN(
           (
-            response.blockTime / BigInt(1_000_000) +
+            mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
             BigInt(24 * 60 * 60)
           ).toString()
         )
@@ -216,15 +266,19 @@ describe("solana-world-id-program", () => {
     const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
     assert(
       Buffer.from(latestRoot.readBlockHash).toString("hex") ===
-        response.blockHash.substring(2),
+        mockEthCallQueryResponse.blockHash.substring(2),
       "readBlockHash does not match"
     );
     assert(
-      latestRoot.readBlockNumber.eq(new BN(response.blockNumber.toString())),
+      latestRoot.readBlockNumber.eq(
+        new BN(mockEthCallQueryResponse.blockNumber.toString())
+      ),
       "readBlockNumber does not match"
     );
     assert(
-      latestRoot.readBlockTime.eq(new BN(response.blockTime.toString())),
+      latestRoot.readBlockTime.eq(
+        new BN(mockEthCallQueryResponse.blockTime.toString())
+      ),
       "readBlockNumber does not match"
     );
     assert(
