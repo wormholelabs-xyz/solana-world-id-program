@@ -50,17 +50,87 @@ describe("solana-world-id-program", () => {
   const program = anchor.workspace
     .SolanaWorldIdProgram as Program<SolanaWorldIdProgram>;
 
+  const programPaidBy = (
+    payer: anchor.web3.Keypair
+  ): Program<SolanaWorldIdProgram> => {
+    const newProvider = new anchor.AnchorProvider(
+      anchor.getProvider().connection,
+      new anchor.Wallet(payer),
+      {}
+    );
+    return new anchor.Program<SolanaWorldIdProgram>(program.idl, newProvider);
+  };
+
   const coreBridgeAddress = new anchor.web3.PublicKey(
     "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth"
   );
-
   const mockGuardianSetIndex = 5;
 
+  const next_owner = anchor.web3.Keypair.generate();
   const validMockSignatureSet = anchor.web3.Keypair.generate();
   let mockQueryResponse: QueryProxyQueryResponse = null;
   let mockEthCallQueryResponse: EthCallQueryResponse = null;
   let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
+
+  it(fmtTest("initialize", "Rejects without deployer as signer"), async () => {
+    {
+      const p = anchor.getProvider();
+      const tx = await p.connection.requestAirdrop(
+        next_owner.publicKey,
+        10000000000
+      );
+      await p.connection.confirmTransaction({
+        ...(await p.connection.getLatestBlockhash()),
+        signature: tx,
+      });
+    }
+    const program = programPaidBy(next_owner);
+    const programData = anchor.web3.PublicKey.findProgramAddressSync(
+      [program.programId.toBuffer()],
+      new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+    )[0];
+    const twentyFourHours = new BN(24 * 60 * 60);
+    const fiveMinutes = new BN(5 * 60);
+    await expect(
+      program.methods
+        .initialize({
+          rootExpiry: twentyFourHours,
+          allowedUpdateStaleness: fiveMinutes,
+        })
+        .accountsPartial({
+          programData,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      "AnchorError caused by account: deployer. Error Code: ConstraintRaw"
+    );
+  });
+
+  it(fmtTest("initialize", "Rejects incorrect program_data"), async () => {
+    const devnetCoreBridgeAddress = new anchor.web3.PublicKey(
+      "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"
+    );
+    const programData = anchor.web3.PublicKey.findProgramAddressSync(
+      [devnetCoreBridgeAddress.toBuffer()],
+      new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+    )[0];
+    const twentyFourHours = new BN(24 * 60 * 60);
+    const fiveMinutes = new BN(5 * 60);
+    await expect(
+      program.methods
+        .initialize({
+          rootExpiry: twentyFourHours,
+          allowedUpdateStaleness: fiveMinutes,
+        })
+        .accountsPartial({
+          programData,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
+    );
+  });
 
   it(fmtTest("initialize", "Successfully initializes"), async () => {
     const programData = anchor.web3.PublicKey.findProgramAddressSync(
@@ -93,6 +163,28 @@ describe("solana-world-id-program", () => {
     );
     assert(config.pendingOwner === null, "pending owner is set");
     assert(config.rootExpiry.eq(twentyFourHours), "root expiry does not match");
+  });
+
+  it(fmtTest("initialize", "Rejects duplicate initialization"), async () => {
+    const programData = anchor.web3.PublicKey.findProgramAddressSync(
+      [program.programId.toBuffer()],
+      new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+    )[0];
+    const twentyFourHours = new BN(24 * 60 * 60);
+    const fiveMinutes = new BN(5 * 60);
+    await expect(
+      program.methods
+        .initialize({
+          rootExpiry: twentyFourHours,
+          allowedUpdateStaleness: fiveMinutes,
+        })
+        .accountsPartial({
+          programData,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      "Allocate: account Address { address: 5FfhKEsPMY6376WW9dUE1FTyRTttH4annJNJ4NCyF4av, base: None } already in use"
+    );
   });
 
   it(fmtTest("helper", "Mocks query"), async () => {

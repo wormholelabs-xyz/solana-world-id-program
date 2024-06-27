@@ -2,11 +2,11 @@
 
 The goal of these tests is to provide positive and negative cases for account annotations and custom errors in the Solana World ID program.
 
-- [ ] [initialize](programs/solana-world-id-program/src/instructions/initialize.rs)
+- [x] [initialize](programs/solana-world-id-program/src/instructions/initialize.rs)
   - [x] Successfully initializes
-  - [ ] Rejects without deployer as signer
-  - [ ] Rejects incorrect program_data
-  - [ ] Rejects duplicate initialization
+  - [x] Rejects without deployer as signer
+  - [x] Rejects incorrect program_data
+  - [x] Rejects duplicate initialization
 - [ ] [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
   - [x] Successfully verifies mock signatures
   - [ ] Rejects guardian set account not owned by the core bridge

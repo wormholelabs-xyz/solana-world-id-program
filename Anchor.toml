@@ -27,6 +27,8 @@ upgradeable = true
 [[test.genesis]]
 address = "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"
 program = "tests/artifacts/devnet_core_bridge.so"
+# Sets upgrade_authority_address used by "initialize - Rejects incorrect program_data" test
+upgradeable = true
 
 ### Wormhole Core Bridge (Devnet) -- Config
 [[test.validator.account]]
