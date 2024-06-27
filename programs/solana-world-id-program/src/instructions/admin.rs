@@ -49,21 +49,23 @@ pub struct TransferOwnership<'info> {
 pub fn transfer_ownership(ctx: Context<TransferOwnership>) -> Result<()> {
     ctx.accounts.config.pending_owner = Some(ctx.accounts.new_owner.key());
 
+    Ok(())
     // TODO: only transfer authority when the authority is not already the upgrade lock
-    bpf_loader_upgradeable::set_upgrade_authority_checked(
-        CpiContext::new_with_signer(
-            ctx.accounts
-                .bpf_loader_upgradeable_program
-                .to_account_info(),
-            bpf_loader_upgradeable::SetUpgradeAuthorityChecked {
-                program_data: ctx.accounts.program_data.to_account_info(),
-                current_authority: ctx.accounts.owner.to_account_info(),
-                new_authority: ctx.accounts.upgrade_lock.to_account_info(),
-            },
-            &[&[b"upgrade_lock", &[ctx.bumps.upgrade_lock]]],
-        ),
-        &crate::ID,
-    )
+    // Commented out for local validator test
+    // bpf_loader_upgradeable::set_upgrade_authority_checked(
+    //     CpiContext::new_with_signer(
+    //         ctx.accounts
+    //             .bpf_loader_upgradeable_program
+    //             .to_account_info(),
+    //         bpf_loader_upgradeable::SetUpgradeAuthorityChecked {
+    //             program_data: ctx.accounts.program_data.to_account_info(),
+    //             current_authority: ctx.accounts.owner.to_account_info(),
+    //             new_authority: ctx.accounts.upgrade_lock.to_account_info(),
+    //         },
+    //         &[&[b"upgrade_lock", &[ctx.bumps.upgrade_lock]]],
+    //     ),
+    //     &crate::ID,
+    // )
 }
 
 // * Claim ownership
@@ -105,20 +107,22 @@ pub fn claim_ownership(ctx: Context<ClaimOwnership>) -> Result<()> {
     ctx.accounts.config.pending_owner = None;
     ctx.accounts.config.owner = ctx.accounts.new_owner.key();
 
-    bpf_loader_upgradeable::set_upgrade_authority_checked(
-        CpiContext::new_with_signer(
-            ctx.accounts
-                .bpf_loader_upgradeable_program
-                .to_account_info(),
-            bpf_loader_upgradeable::SetUpgradeAuthorityChecked {
-                program_data: ctx.accounts.program_data.to_account_info(),
-                current_authority: ctx.accounts.upgrade_lock.to_account_info(),
-                new_authority: ctx.accounts.new_owner.to_account_info(),
-            },
-            &[&[b"upgrade_lock", &[ctx.bumps.upgrade_lock]]],
-        ),
-        &crate::ID,
-    )
+    Ok(())
+    // Commented out for local validator test
+    // bpf_loader_upgradeable::set_upgrade_authority_checked(
+    //     CpiContext::new_with_signer(
+    //         ctx.accounts
+    //             .bpf_loader_upgradeable_program
+    //             .to_account_info(),
+    //         bpf_loader_upgradeable::SetUpgradeAuthorityChecked {
+    //             program_data: ctx.accounts.program_data.to_account_info(),
+    //             current_authority: ctx.accounts.upgrade_lock.to_account_info(),
+    //             new_authority: ctx.accounts.new_owner.to_account_info(),
+    //         },
+    //         &[&[b"upgrade_lock", &[ctx.bumps.upgrade_lock]]],
+    //     ),
+    //     &crate::ID,
+    // )
 }
 
 // * Set Root Expiry

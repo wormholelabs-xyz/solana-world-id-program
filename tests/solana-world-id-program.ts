@@ -76,7 +76,7 @@ describe("solana-world-id-program", () => {
   let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
 
-  it(fmtTest("initialize", "Rejects without deployer as signer"), async () => {
+  it(fmtTest("initialize", "Rejects deployer account mismatch"), async () => {
     {
       const p = anchor.getProvider();
       const tx = await p.connection.requestAirdrop(
@@ -107,6 +107,32 @@ describe("solana-world-id-program", () => {
         .rpc()
     ).to.be.rejectedWith(
       "AnchorError caused by account: deployer. Error Code: ConstraintRaw"
+    );
+  });
+
+  it(fmtTest("initialize", "Rejects without deployer as signer"), async () => {
+    const program = programPaidBy(next_owner);
+    const programData = anchor.web3.PublicKey.findProgramAddressSync(
+      [program.programId.toBuffer()],
+      new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+    )[0];
+    const twentyFourHours = new BN(24 * 60 * 60);
+    const fiveMinutes = new BN(5 * 60);
+    await expect(
+      program.methods
+        .initialize({
+          rootExpiry: twentyFourHours,
+          allowedUpdateStaleness: fiveMinutes,
+        })
+        .accountsPartial({
+          programData,
+          deployer: anchor.getProvider().publicKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      `Missing signature for public key [\`${anchor
+        .getProvider()
+        .publicKey.toString()}\`].`
     );
   });
 
@@ -485,20 +511,36 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  it(fmtTest("set_root_expiry", "Rejects owner account mismatch"), async () => {
+    const program = programPaidBy(next_owner);
+    await expect(
+      program.methods.setRootExpiry(new BN(1)).rpc()
+    ).to.be.rejectedWith(
+      "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+    );
+  });
+
   it(
     fmtTest("set_root_expiry", "Rejects without owner as signer"),
     async () => {
       const program = programPaidBy(next_owner);
       await expect(
-        program.methods.setRootExpiry(new BN(1)).rpc()
+        program.methods
+          .setRootExpiry(new BN(1))
+          .accountsPartial({
+            owner: anchor.getProvider().publicKey,
+          })
+          .rpc()
       ).to.be.rejectedWith(
-        "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+        `Missing signature for public key [\`${anchor
+          .getProvider()
+          .publicKey.toString()}\`].`
       );
     }
   );
 
   it(
-    fmtTest("set_allowed_update_staleness", "Rejects without owner as signer"),
+    fmtTest("set_allowed_update_staleness", "Rejects owner account mismatch"),
     async () => {
       const program = programPaidBy(next_owner);
       await expect(
@@ -510,7 +552,26 @@ describe("solana-world-id-program", () => {
   );
 
   it(
-    fmtTest("transfer_ownership", "Rejects without owner as signer"),
+    fmtTest("set_allowed_update_staleness", "Rejects without owner as signer"),
+    async () => {
+      const program = programPaidBy(next_owner);
+      await expect(
+        program.methods
+          .setAllowedUpdateStaleness(new BN(1))
+          .accountsPartial({
+            owner: anchor.getProvider().publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        `Missing signature for public key [\`${anchor
+          .getProvider()
+          .publicKey.toString()}\`].`
+      );
+    }
+  );
+
+  it(
+    fmtTest("transfer_ownership", "Rejects owner account mismatch"),
     async () => {
       const program = programPaidBy(next_owner);
       const programData = anchor.web3.PublicKey.findProgramAddressSync(
@@ -532,9 +593,34 @@ describe("solana-world-id-program", () => {
   );
 
   it(
+    fmtTest("transfer_ownership", "Rejects without owner as signer"),
+    async () => {
+      const program = programPaidBy(next_owner);
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .transferOwnership()
+          .accountsPartial({
+            owner: anchor.getProvider().publicKey,
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        `Missing signature for public key [\`${anchor
+          .getProvider()
+          .publicKey.toString()}\`].`
+      );
+    }
+  );
+
+  it(
     fmtTest(
       "claim_ownership",
-      "Rejects without owner or pending owner as signer"
+      "Rejects owner or pending owner account mismatch"
     ),
     async () => {
       const program = programPaidBy(next_owner);
@@ -552,6 +638,33 @@ describe("solana-world-id-program", () => {
           .rpc()
       ).to.be.rejectedWith(
         "AnchorError caused by account: config. Error Code: InvalidPendingOwner"
+      );
+    }
+  );
+
+  it(
+    fmtTest(
+      "claim_ownership",
+      "Rejects without owner or pending owner as signer"
+    ),
+    async () => {
+      const program = programPaidBy(next_owner);
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .claimOwnership()
+          .accountsPartial({
+            newOwner: anchor.getProvider().publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        `Missing signature for public key [\`${anchor
+          .getProvider()
+          .publicKey.toString()}\`].`
       );
     }
   );
@@ -594,4 +707,91 @@ describe("solana-world-id-program", () => {
       "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
     );
   });
+
+  it(
+    fmtTest("transfer_ownership", "Successfully initiates ownership transfer"),
+    async () => {
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .transferOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(
+        config.pendingOwner.equals(next_owner.publicKey),
+        "pending owner does not match"
+      );
+    }
+  );
+
+  it(
+    fmtTest("claim_ownership", "Successfully cancels ownership transfer"),
+    async () => {
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .claimOwnership()
+          .accountsPartial({
+            newOwner: anchor.getProvider().publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(config.pendingOwner === null, "pending owner does not match");
+      assert(
+        config.owner.equals(anchor.getProvider().publicKey),
+        "owner does not match"
+      );
+    }
+  );
+
+  it(
+    fmtTest("claim_ownership", "Successfully completes ownership transfer"),
+    async () => {
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .transferOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      const programNextOwner = programPaidBy(next_owner);
+      await expect(
+        programNextOwner.methods
+          .claimOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(config.pendingOwner === null, "pending owner does not match");
+      assert(config.owner.equals(next_owner.publicKey), "owner does not match");
+    }
+  );
 });

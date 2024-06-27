@@ -4,6 +4,7 @@ The goal of these tests is to provide positive and negative cases for account an
 
 - [x] [initialize](programs/solana-world-id-program/src/instructions/initialize.rs)
   - [x] Successfully initializes
+  - [x] Rejects deployer account mismatch
   - [x] Rejects without deployer as signer
   - [x] Rejects incorrect program_data
   - [x] Rejects duplicate initialization
@@ -50,18 +51,22 @@ The goal of these tests is to provide positive and negative cases for account an
   - [ ] Rejects verification type instruction argument mismatch
   - [x] Rejects noop root expiry update
 - [ ] [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
-  - [ ] Successfully initiates ownership transfer
+  - [x] Successfully initiates ownership transfer
+  - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
   - [x] Rejects incorrect program_data
   - [ ] Rejects transfer when authority is already upgrade lock
-- [ ] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
-  - [ ] Successfully completes ownership transfer
-  - [ ] Successfully cancels ownership transfer
+- [x] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Successfully completes ownership transfer
+  - [x] Successfully cancels ownership transfer
+  - [x] Rejects owner or pending owner account mismatch
   - [x] Rejects without owner or pending owner as signer
   - [x] Rejects incorrect program_data
 - [x] [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully updates expiry config
+  - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
 - [x] [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully updates staleness config
+  - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
