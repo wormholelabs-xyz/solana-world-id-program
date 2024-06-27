@@ -40,6 +40,9 @@ const sleep = (ms: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
+const fmtTest = (instruction: string, name: string) =>
+  `${instruction.padEnd(30)} ${name}`;
+
 describe("solana-world-id-program", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
@@ -59,7 +62,7 @@ describe("solana-world-id-program", () => {
   let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
 
-  it("Is initialized!", async () => {
+  it(fmtTest("initialize", "Successfully initializes"), async () => {
     const programData = anchor.web3.PublicKey.findProgramAddressSync(
       [program.programId.toBuffer()],
       new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
@@ -92,7 +95,7 @@ describe("solana-world-id-program", () => {
     assert(config.rootExpiry.eq(twentyFourHours), "root expiry does not match");
   });
 
-  it("Mocks query!", async () => {
+  it(fmtTest("helper", "Mocks query"), async () => {
     const mock = new QueryProxyMock({
       [ETH_CHAIN_ID]: ETH_NODE_URL,
     });
@@ -119,227 +122,274 @@ describe("solana-world-id-program", () => {
     rootKey = deriveRootKey(program.programId, Buffer.from(rootHash, "hex"), 0);
   });
 
-  it("Verifies mock signatures!", async () => {
-    const p = anchor.getProvider();
-    const payer = anchor.web3.Keypair.fromSecretKey(PAYER_PRIVATE_KEY);
-    const instructions = await createVerifyQuerySignaturesInstructions(
-      p.connection,
-      program,
-      coreBridgeAddress,
-      payer.publicKey,
-      mockQueryResponse.bytes,
-      mockQueryResponse.signatures,
-      validMockSignatureSet.publicKey,
-      undefined,
-      mockGuardianSetIndex
-    );
-    const unsignedTransactions: anchor.web3.Transaction[] = [];
-    for (let i = 0; i < instructions.length; i += 2) {
-      unsignedTransactions.push(
-        new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
+  it(
+    fmtTest("verify_query_signatures", "Successfully verifies mock signatures"),
+    async () => {
+      const p = anchor.getProvider();
+      const payer = anchor.web3.Keypair.fromSecretKey(PAYER_PRIVATE_KEY);
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        p.connection,
+        program,
+        coreBridgeAddress,
+        payer.publicKey,
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        validMockSignatureSet.publicKey,
+        undefined,
+        mockGuardianSetIndex
       );
-    }
-    for (const tx of unsignedTransactions) {
+      const unsignedTransactions: anchor.web3.Transaction[] = [];
+      for (let i = 0; i < instructions.length; i += 2) {
+        unsignedTransactions.push(
+          new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
+        );
+      }
+      for (const tx of unsignedTransactions) {
+        await expect(
+          anchor.web3.sendAndConfirmTransaction(p.connection, tx, [
+            payer,
+            validMockSignatureSet,
+          ])
+        ).to.be.fulfilled;
+      }
+      // this will fail if the account does not exist, match discriminator, and parse
       await expect(
-        anchor.web3.sendAndConfirmTransaction(p.connection, tx, [
-          payer,
-          validMockSignatureSet,
-        ])
+        program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
       ).to.be.fulfilled;
     }
-    // this will fail if the account does not exist, match discriminator, and parse
-    await expect(
-      program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
-    ).to.be.fulfilled;
-  });
+  );
 
-  it("Rejects a mismatched root hash!", async () => {
-    await expect(
-      program.methods
-        .updateRootWithQuery(
-          Buffer.from(mockQueryResponse.bytes, "hex"),
-          new Array(32).fill(0)
-        )
-        .accountsPartial({
-          guardianSet: deriveGuardianSetKey(
-            coreBridgeAddress,
-            mockGuardianSetIndex
-          ),
-          signatureSet: validMockSignatureSet.publicKey,
-        })
-        .rpc()
-    ).to.be.rejectedWith("RootHashMismatch");
-  });
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Rejects root hash instruction argument mismatch"
+    ),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootWithQuery(
+            Buffer.from(mockQueryResponse.bytes, "hex"),
+            new Array(32).fill(0)
+          )
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: validMockSignatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("RootHashMismatch");
+    }
+  );
 
-  it("Updates staleness config!", async () => {
-    const zeroSeconds = new BN(0);
-    await expect(program.methods.setAllowedUpdateStaleness(zeroSeconds).rpc())
-      .to.be.fulfilled;
-    const config = await program.account.config.fetch(
-      deriveConfigKey(program.programId)
-    );
-    assert(
-      config.allowedUpdateStaleness.eq(zeroSeconds),
-      "config does not match"
-    );
-  });
+  it(
+    fmtTest(
+      "set_allowed_update_staleness",
+      "Successfully updates staleness config"
+    ),
+    async () => {
+      const zeroSeconds = new BN(0);
+      await expect(program.methods.setAllowedUpdateStaleness(zeroSeconds).rpc())
+        .to.be.fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(
+        config.allowedUpdateStaleness.eq(zeroSeconds),
+        "config does not match"
+      );
+    }
+  );
 
-  it("Rejects a stale root update!", async () => {
-    await expect(
-      program.methods
-        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
-          ...Buffer.from(rootHash, "hex"),
-        ])
-        .accountsPartial({
-          guardianSet: deriveGuardianSetKey(
-            coreBridgeAddress,
-            mockGuardianSetIndex
-          ),
-          signatureSet: validMockSignatureSet.publicKey,
-        })
-        .rpc()
-    ).to.be.rejectedWith("StaleBlockTime");
-  });
+  it(
+    fmtTest("update_root_with_query", "Rejects stale block time"),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: validMockSignatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("StaleBlockTime");
+    }
+  );
 
-  it("Updates staleness config back!", async () => {
-    const fiveMinutes = new BN(5 * 60);
-    await expect(program.methods.setAllowedUpdateStaleness(fiveMinutes).rpc())
-      .to.be.fulfilled;
-    const config = await program.account.config.fetch(
-      deriveConfigKey(program.programId)
-    );
-    assert(
-      config.allowedUpdateStaleness.eq(fiveMinutes),
-      "config does not match"
-    );
-  });
+  it(
+    fmtTest(
+      "set_allowed_update_staleness",
+      "Successfully updates staleness config (again)"
+    ),
+    async () => {
+      const fiveMinutes = new BN(5 * 60);
+      await expect(program.methods.setAllowedUpdateStaleness(fiveMinutes).rpc())
+        .to.be.fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(
+        config.allowedUpdateStaleness.eq(fiveMinutes),
+        "config does not match"
+      );
+    }
+  );
 
-  it("Verifies mock queries!", async () => {
-    const latestRootKey = deriveLatestRootKey(program.programId, 0);
-    await expect(
-      program.methods
-        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
-          ...Buffer.from(rootHash, "hex"),
-        ])
-        .accountsPartial({
-          guardianSet: deriveGuardianSetKey(
-            coreBridgeAddress,
-            mockGuardianSetIndex
-          ),
-          signatureSet: validMockSignatureSet.publicKey,
-        })
-        .rpc()
-    ).to.be.fulfilled;
-    const root = await program.account.root.fetch(rootKey);
-    assert(
-      Buffer.from(root.readBlockHash).toString("hex") ===
-        mockEthCallQueryResponse.blockHash.substring(2),
-      "readBlockHash does not match"
-    );
-    assert(
-      root.readBlockNumber.eq(
-        new BN(mockEthCallQueryResponse.blockNumber.toString())
-      ),
-      "readBlockNumber does not match"
-    );
-    assert(
-      root.readBlockTime.eq(
-        new BN(mockEthCallQueryResponse.blockTime.toString())
-      ),
-      "readBlockNumber does not match"
-    );
-    assert(
-      root.expiryTime.eq(
-        new BN(
-          (
-            mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
-            BigInt(24 * 60 * 60)
-          ).toString()
-        )
-      ),
-      "expiryTime is incorrect"
-    );
-    assert(
-      root.refundRecipient.equals(anchor.getProvider().publicKey),
-      "refundRecipient does not match"
-    );
-    const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
-    assert(
-      Buffer.from(latestRoot.readBlockHash).toString("hex") ===
-        mockEthCallQueryResponse.blockHash.substring(2),
-      "readBlockHash does not match"
-    );
-    assert(
-      latestRoot.readBlockNumber.eq(
-        new BN(mockEthCallQueryResponse.blockNumber.toString())
-      ),
-      "readBlockNumber does not match"
-    );
-    assert(
-      latestRoot.readBlockTime.eq(
-        new BN(mockEthCallQueryResponse.blockTime.toString())
-      ),
-      "readBlockNumber does not match"
-    );
-    assert(
-      Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
-      "root does not match"
-    );
-  });
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Successfully verifies mock queries and updates root"
+    ),
+    async () => {
+      const latestRootKey = deriveLatestRootKey(program.programId, 0);
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: validMockSignatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      const root = await program.account.root.fetch(rootKey);
+      assert(
+        Buffer.from(root.readBlockHash).toString("hex") ===
+          mockEthCallQueryResponse.blockHash.substring(2),
+        "readBlockHash does not match"
+      );
+      assert(
+        root.readBlockNumber.eq(
+          new BN(mockEthCallQueryResponse.blockNumber.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        root.readBlockTime.eq(
+          new BN(mockEthCallQueryResponse.blockTime.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        root.expiryTime.eq(
+          new BN(
+            (
+              mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
+              BigInt(24 * 60 * 60)
+            ).toString()
+          )
+        ),
+        "expiryTime is incorrect"
+      );
+      assert(
+        root.refundRecipient.equals(anchor.getProvider().publicKey),
+        "refundRecipient does not match"
+      );
+      const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
+      assert(
+        Buffer.from(latestRoot.readBlockHash).toString("hex") ===
+          mockEthCallQueryResponse.blockHash.substring(2),
+        "readBlockHash does not match"
+      );
+      assert(
+        latestRoot.readBlockNumber.eq(
+          new BN(mockEthCallQueryResponse.blockNumber.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        latestRoot.readBlockTime.eq(
+          new BN(mockEthCallQueryResponse.blockTime.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
+        "root does not match"
+      );
+    }
+  );
 
-  it("Closed the signature set!", async () => {
-    await expect(
-      program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
-    ).to.be.rejectedWith("Account does not exist or has no data");
-  });
+  it(
+    fmtTest("update_root_with_query", "Successfully closed the signature set"),
+    async () => {
+      await expect(
+        program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
+      ).to.be.rejectedWith("Account does not exist or has no data");
+    }
+  );
 
-  it("Rejects active root clean up!", async () => {
+  it(fmtTest("clean_up_root", "Rejects active root clean up"), async () => {
     await expect(
       program.methods.cleanUpRoot([...Buffer.from(rootHash, "hex")], [0]).rpc()
     ).to.be.rejectedWith("RootUnexpired");
   });
 
-  it("Rejects root expiry update noop!", async () => {
-    await expect(
-      program.methods
-        .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
-        .rpc()
-    ).to.be.rejectedWith("NoopExpiryUpdate");
-  });
+  it(
+    fmtTest("update_root_expiry", "Rejects root expiry update noop"),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
+          .rpc()
+      ).to.be.rejectedWith("NoopExpiryUpdate");
+    }
+  );
 
-  it("Updates expiry config!", async () => {
-    const oneSecond = new BN(1);
-    await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
-      .fulfilled;
-    const config = await program.account.config.fetch(
-      deriveConfigKey(program.programId)
-    );
-    assert(config.rootExpiry.eq(oneSecond), "config does not match");
-  });
+  it(
+    fmtTest("set_root_expiry", "Successfully updates expiry config"),
+    async () => {
+      const oneSecond = new BN(1);
+      await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
+        .fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(config.rootExpiry.eq(oneSecond), "config does not match");
+    }
+  );
 
-  it("Updates root expiry!", async () => {
-    await expect(
-      program.methods
-        .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
-        .rpc()
-    ).to.be.fulfilled;
-    const root = await program.account.root.fetch(rootKey);
-    assert(
-      root.readBlockTime
-        .div(new BN(1_000_000))
-        .add(new BN(1))
-        .eq(root.expiryTime),
-      "root not updated correctly"
-    );
-  });
+  it(
+    fmtTest("update_root_expiry", "Successfully updates root expiry"),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
+          .rpc()
+      ).to.be.fulfilled;
+      const root = await program.account.root.fetch(rootKey);
+      assert(
+        root.readBlockTime
+          .div(new BN(1_000_000))
+          .add(new BN(1))
+          .eq(root.expiryTime),
+        "root not updated correctly"
+      );
+    }
+  );
 
-  it("Cleans up expired roots!", async () => {
-    await sleep(1000);
-    await expect(
-      program.methods.cleanUpRoot([...Buffer.from(rootHash, "hex")], [0]).rpc()
-    ).to.be.fulfilled;
-    await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(
-      "Account does not exist or has no data"
-    );
-  });
+  it(
+    fmtTest("clean_up_root", "Successfully cleans up an expired root"),
+    async () => {
+      await sleep(1000);
+      await expect(
+        program.methods
+          .cleanUpRoot([...Buffer.from(rootHash, "hex")], [0])
+          .rpc()
+      ).to.be.fulfilled;
+      await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(
+        "Account does not exist or has no data"
+      );
+    }
+  );
 });

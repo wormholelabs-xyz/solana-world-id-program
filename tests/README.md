@@ -1,0 +1,67 @@
+# TypeScript Anchor Tests
+
+The goal of these tests is to provide positive and negative cases for account annotations and custom errors in the Solana World ID program.
+
+- [ ] [initialize](programs/solana-world-id-program/src/instructions/initialize.rs)
+  - [x] Successfully initializes
+  - [ ] Rejects without deployer as signer
+  - [ ] Rejects incorrect program_data
+  - [ ] Rejects duplicate initialization
+- [ ] [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
+  - [x] Successfully verifies mock signatures
+  - [ ] Rejects guardian set account not owned by the core bridge
+  - [ ] Rejects sysvar account mismatch
+  - [ ] Rejects signer indices instruction argument mismatch
+  - [ ] Rejects guardian set mismatch
+  - [ ] Rejects message mismatch
+  - [ ] Rejects invalid guardian key recovery
+- [ ] [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
+  - [x] Successfully verifies mock queries and updates root
+  - [x] Successfully closed the signature set
+  - [ ] Rejects guardian set account mismatch
+  - [ ] Rejects refund recipient account mismatch
+  - [x] Rejects root hash instruction argument mismatch
+  - [ ] Rejects expired guardian set
+  - [ ] Rejects no quorum
+  - [ ] Rejects invalid message hash
+  - [ ] Rejects un-parse-able response
+  - [ ] Rejects invalid number of requests
+  - [ ] Rejects invalid request chain id
+  - [ ] Rejects invalid request type
+  - [ ] Rejects invalid request call data length
+  - [ ] Rejects invalid request contract
+  - [ ] Rejects invalid request signature
+  - [ ] Rejects invalid number of responses (defense-in-depth)
+  - [ ] Rejects invalid response chain id (defense-in-depth)
+  - [ ] Rejects invalid response type (defense-in-depth)
+  - [ ] Rejects stale block number
+  - [x] Rejects stale block time
+  - [ ] Rejects invalid response results length
+  - [ ] Rejects invalid response result length
+- [ ] [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs)
+  - [x] Successfully cleans up an expired root
+  - [ ] Rejects root hash instruction argument mismatch
+  - [ ] Rejects verification type instruction argument mismatch
+  - [ ] Rejects refund recipient account mismatch
+  - [x] Rejects active root clean up
+- [ ] [update_root_expiry](programs/solana-world-id-program/src/instructions/update_root_expiry.rs)
+  - [x] Successfully updates root expiry
+  - [ ] Rejects root hash instruction argument mismatch
+  - [ ] Rejects verification type instruction argument mismatch
+  - [x] Rejects noop root expiry update
+- [ ] [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [ ] Successfully initiates ownership transfer
+  - [ ] Rejects without owner as signer
+  - [ ] Rejects incorrect program_data
+  - [ ] Rejects transfer when authority is already upgrade lock
+- [ ] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [ ] Successfully completes ownership transfer
+  - [ ] Successfully cancels ownership transfer
+  - [ ] Rejects without owner or pending owner as signer
+  - [ ] Rejects incorrect program_data
+- [ ] [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Successfully updates expiry config
+  - [ ] Rejects without owner as signer
+- [ ] [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Successfully updates staleness config
+  - [ ] Rejects without owner as signer
