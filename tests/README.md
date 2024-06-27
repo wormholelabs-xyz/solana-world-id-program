@@ -51,14 +51,15 @@ The goal of these tests is to provide positive and negative cases for account an
   - [ ] Rejects verification type instruction argument mismatch
   - [x] Rejects noop root expiry update
 - [ ] [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
-  - [x] Successfully initiates ownership transfer
+  - [ ] Successfully initiates ownership transfer (test in devnet)
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
   - [x] Rejects incorrect program_data
-  - [ ] Rejects transfer when authority is already upgrade lock
-- [x] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
-  - [x] Successfully completes ownership transfer
-  - [x] Successfully cancels ownership transfer
+  - [ ] Rejects when authority is already upgrade lock (test in devnet)
+- [ ] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [ ] Successfully completes ownership transfer (test in devnet)
+  - [ ] Successfully cancels ownership transfer (test in devnet)
+  - [x] Rejects when upgrade_lock is not upgrade_authority_address
   - [x] Rejects owner or pending owner account mismatch
   - [x] Rejects without owner or pending owner as signer
   - [x] Rejects incorrect program_data
