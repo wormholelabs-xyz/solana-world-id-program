@@ -51,17 +51,17 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects noop root expiry update
 - [ ] [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
   - [ ] Successfully initiates ownership transfer
-  - [ ] Rejects without owner as signer
-  - [ ] Rejects incorrect program_data
+  - [x] Rejects without owner as signer
+  - [x] Rejects incorrect program_data
   - [ ] Rejects transfer when authority is already upgrade lock
 - [ ] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
   - [ ] Successfully completes ownership transfer
   - [ ] Successfully cancels ownership transfer
-  - [ ] Rejects without owner or pending owner as signer
-  - [ ] Rejects incorrect program_data
-- [ ] [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Rejects without owner or pending owner as signer
+  - [x] Rejects incorrect program_data
+- [x] [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully updates expiry config
-  - [ ] Rejects without owner as signer
-- [ ] [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Rejects without owner as signer
+- [x] [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully updates staleness config
-  - [ ] Rejects without owner as signer
+  - [x] Rejects without owner as signer

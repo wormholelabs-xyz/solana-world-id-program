@@ -61,6 +61,9 @@ describe("solana-world-id-program", () => {
     return new anchor.Program<SolanaWorldIdProgram>(program.idl, newProvider);
   };
 
+  const devnetCoreBridgeAddress = new anchor.web3.PublicKey(
+    "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"
+  );
   const coreBridgeAddress = new anchor.web3.PublicKey(
     "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth"
   );
@@ -108,9 +111,6 @@ describe("solana-world-id-program", () => {
   });
 
   it(fmtTest("initialize", "Rejects incorrect program_data"), async () => {
-    const devnetCoreBridgeAddress = new anchor.web3.PublicKey(
-      "Bridge1p5gheXUvJ6jGWGeCsgPKgnE3YgdGKRVCMY9o"
-    );
     const programData = anchor.web3.PublicKey.findProgramAddressSync(
       [devnetCoreBridgeAddress.toBuffer()],
       new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
@@ -484,4 +484,114 @@ describe("solana-world-id-program", () => {
       );
     }
   );
+
+  it(
+    fmtTest("set_root_expiry", "Rejects without owner as signer"),
+    async () => {
+      const program = programPaidBy(next_owner);
+      await expect(
+        program.methods.setRootExpiry(new BN(1)).rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+      );
+    }
+  );
+
+  it(
+    fmtTest("set_allowed_update_staleness", "Rejects without owner as signer"),
+    async () => {
+      const program = programPaidBy(next_owner);
+      await expect(
+        program.methods.setAllowedUpdateStaleness(new BN(1)).rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+      );
+    }
+  );
+
+  it(
+    fmtTest("transfer_ownership", "Rejects without owner as signer"),
+    async () => {
+      const program = programPaidBy(next_owner);
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .transferOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+      );
+    }
+  );
+
+  it(
+    fmtTest(
+      "claim_ownership",
+      "Rejects without owner or pending owner as signer"
+    ),
+    async () => {
+      const program = programPaidBy(next_owner);
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .claimOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: config. Error Code: InvalidPendingOwner"
+      );
+    }
+  );
+
+  it(
+    fmtTest("transfer_ownership", "Rejects incorrect program_data"),
+    async () => {
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [devnetCoreBridgeAddress.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+      await expect(
+        program.methods
+          .transferOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            programData,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
+      );
+    }
+  );
+
+  it(fmtTest("claim_ownership", "Rejects incorrect program_data"), async () => {
+    const programData = anchor.web3.PublicKey.findProgramAddressSync(
+      [devnetCoreBridgeAddress.toBuffer()],
+      new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+    )[0];
+    await expect(
+      program.methods
+        .claimOwnership()
+        .accountsPartial({
+          newOwner: anchor.getProvider().publicKey,
+          programData,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
+    );
+  });
 });
