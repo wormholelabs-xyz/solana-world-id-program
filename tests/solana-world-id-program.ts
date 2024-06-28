@@ -478,6 +478,44 @@ describe("solana-world-id-program", () => {
   );
 
   it(
+    fmtTest(
+      "update_root_expiry",
+      "Rejects root hash instruction argument mismatch"
+    ),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootExpiry(new Array(32).fill(0), [0])
+          .accountsPartial({
+            root: rootKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_expiry",
+      "Rejects verification type instruction argument mismatch"
+    ),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootExpiry([...Buffer.from(rootHash, "hex")], [1])
+          .accountsPartial({
+            root: rootKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(
     fmtTest("update_root_expiry", "Successfully updates root expiry"),
     async () => {
       await expect(
@@ -492,6 +530,57 @@ describe("solana-world-id-program", () => {
           .add(new BN(1))
           .eq(root.expiryTime),
         "root not updated correctly"
+      );
+    }
+  );
+
+  it(
+    fmtTest("clean_up_root", "Rejects root hash instruction argument mismatch"),
+    async () => {
+      await expect(
+        program.methods
+          .cleanUpRoot(new Array(32).fill(0), [0])
+          .accountsPartial({
+            root: rootKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(
+    fmtTest(
+      "clean_up_root",
+      "Rejects verification type instruction argument mismatch"
+    ),
+    async () => {
+      await expect(
+        program.methods
+          .cleanUpRoot([...Buffer.from(rootHash, "hex")], [1])
+          .accountsPartial({
+            root: rootKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(
+    fmtTest("clean_up_root", "Rejects refund recipient account mismatch"),
+    async () => {
+      await expect(
+        program.methods
+          .cleanUpRoot([...Buffer.from(rootHash, "hex")], [0])
+          .accountsPartial({
+            refundRecipient: next_owner.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintHasOne."
       );
     }
   );

@@ -39,16 +39,16 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects stale block time
   - [ ] Rejects invalid response results length
   - [ ] Rejects invalid response result length
-- [ ] [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs)
+- [x] [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs)
   - [x] Successfully cleans up an expired root
-  - [ ] Rejects root hash instruction argument mismatch
-  - [ ] Rejects verification type instruction argument mismatch
-  - [ ] Rejects refund recipient account mismatch
+  - [x] Rejects root hash instruction argument mismatch
+  - [x] Rejects verification type instruction argument mismatch
+  - [x] Rejects refund recipient account mismatch
   - [x] Rejects active root clean up
-- [ ] [update_root_expiry](programs/solana-world-id-program/src/instructions/update_root_expiry.rs)
+- [x] [update_root_expiry](programs/solana-world-id-program/src/instructions/update_root_expiry.rs)
   - [x] Successfully updates root expiry
-  - [ ] Rejects root hash instruction argument mismatch
-  - [ ] Rejects verification type instruction argument mismatch
+  - [x] Rejects root hash instruction argument mismatch
+  - [x] Rejects verification type instruction argument mismatch
   - [x] Rejects noop root expiry update
 - [ ] [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
   - [ ] Successfully initiates ownership transfer (test in devnet)
