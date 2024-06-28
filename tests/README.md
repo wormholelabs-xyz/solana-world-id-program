@@ -10,35 +10,36 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects duplicate initialization
 - [ ] [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
   - [x] Successfully verifies mock signatures
-  - [ ] Rejects guardian set account not owned by the core bridge
+  - [x] Rejects guardian set account not owned by the core bridge
   - [ ] Rejects sysvar account mismatch
   - [ ] Rejects signer indices instruction argument mismatch
   - [ ] Rejects guardian set mismatch
   - [ ] Rejects message mismatch
   - [ ] Rejects invalid guardian key recovery
-- [ ] [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
+- [x] [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
-  - [ ] Rejects guardian set account mismatch
-  - [ ] Rejects refund recipient account mismatch
+  - [x] Rejects valid root which already exists
+  - [x] Rejects guardian set account mismatch
+  - [x] Rejects refund recipient account mismatch
   - [x] Rejects root hash instruction argument mismatch
-  - [ ] Rejects expired guardian set
-  - [ ] Rejects no quorum
-  - [ ] Rejects invalid message hash
-  - [ ] Rejects un-parse-able response
-  - [ ] Rejects invalid number of requests
-  - [ ] Rejects invalid request chain id
-  - [ ] Rejects invalid request type
-  - [ ] Rejects invalid request call data length
-  - [ ] Rejects invalid request contract
-  - [ ] Rejects invalid request signature
-  - [ ] Rejects invalid number of responses (defense-in-depth)
-  - [ ] Rejects invalid response chain id (defense-in-depth)
-  - [ ] Rejects invalid response type (defense-in-depth)
-  - [ ] Rejects stale block number
+  - [x] Rejects expired guardian set
+  - [x] Rejects no quorum
+  - [x] Rejects invalid message hash
+  - [x] Rejects un-parse-able response
+  - [x] Rejects invalid number of requests
+  - [x] Rejects invalid request chain id
+  - [x] Rejects invalid request type
+  - [x] Rejects invalid request call data length
+  - [x] Rejects invalid request contract
+  - [x] Rejects invalid request signature
+  - [x] Rejects invalid number of responses (defense-in-depth)
+  - [x] Rejects invalid response chain id (defense-in-depth)
+  - [x] Rejects invalid response type (defense-in-depth)
+  - [x] Rejects stale block number
   - [x] Rejects stale block time
-  - [ ] Rejects invalid response results length
-  - [ ] Rejects invalid response result length
+  - [x] Rejects invalid response results length
+  - [x] Rejects invalid response result length
 - [x] [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs)
   - [x] Successfully cleans up an expired root
   - [x] Rejects root hash instruction argument mismatch

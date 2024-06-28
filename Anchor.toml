@@ -113,3 +113,13 @@ filename = "tests/accounts/core_bridge_mainnet/guardian_set_4.json"
 [[test.validator.account]]
 address = "6YG3J7PaxyMnnbU67ifyrgF3BzNzc7cD8hPkqK6ATweE"
 filename = "tests/accounts/core_bridge_mainnet/guardian_set_5_mock.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 6 (mock expired)
+[[test.validator.account]]
+address = "qHpgKQfi2166hrKgLPBJxdJwTzwq4D14g3D4i4eU5TK"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_6_mock_expired.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 7 (mock no quorum)
+[[test.validator.account]]
+address = "6YLGQQEweF82hbPSWCSeJqifWyT8Pm4QXa3mWSLwjYSh"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_7_mock_no_quorum.json"

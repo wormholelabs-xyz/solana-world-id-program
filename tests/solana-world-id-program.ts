@@ -3,6 +3,8 @@ import { Program } from "@coral-xyz/anchor";
 import {
   EthCallQueryRequest,
   EthCallQueryResponse,
+  EthCallWithFinalityQueryRequest,
+  EthCallWithFinalityQueryResponse,
   PerChainQueryRequest,
   QueryProxyMock,
   QueryProxyQueryResponse,
@@ -21,11 +23,6 @@ import { BN } from "bn.js";
 import { deriveConfigKey } from "./helpers/config";
 
 use(chaiAsPromised);
-
-// borrowed from https://github.com/wormhole-foundation/wormhole-circle-integration/blob/solana/integration/solana/ts/tests/helpers/consts.ts
-const PAYER_PRIVATE_KEY = Buffer.from(
-  require("./keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json")
-);
 
 const ETH_NODE_URL = "https://ethereum-rpc.publicnode.com";
 // https://docs.wormhole.com/wormhole/reference/constants
@@ -68,6 +65,8 @@ describe("solana-world-id-program", () => {
     "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth"
   );
   const mockGuardianSetIndex = 5;
+  const expiredMockGuardianSetIndex = 6;
+  const noQuorumMockGuardianSetIndex = 7;
 
   const next_owner = anchor.web3.Keypair.generate();
   const validMockSignatureSet = anchor.web3.Keypair.generate();
@@ -75,6 +74,36 @@ describe("solana-world-id-program", () => {
   let mockEthCallQueryResponse: EthCallQueryResponse = null;
   let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
+
+  async function verifyQuerySigs(
+    queryBytes: string,
+    querySignatures: string[],
+    signatureSet: anchor.web3.Keypair,
+    wormholeProgramId: anchor.web3.PublicKey = coreBridgeAddress,
+    guardianSetIndex: number = mockGuardianSetIndex
+  ) {
+    const p = anchor.getProvider();
+    const instructions = await createVerifyQuerySignaturesInstructions(
+      p.connection,
+      program,
+      wormholeProgramId,
+      p.publicKey,
+      queryBytes,
+      querySignatures,
+      signatureSet.publicKey,
+      undefined,
+      guardianSetIndex
+    );
+    const unsignedTransactions: anchor.web3.Transaction[] = [];
+    for (let i = 0; i < instructions.length; i += 2) {
+      unsignedTransactions.push(
+        new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
+      );
+    }
+    for (const tx of unsignedTransactions) {
+      await p.sendAndConfirm(tx, [signatureSet]);
+    }
+  }
 
   it(fmtTest("initialize", "Rejects deployer account mismatch"), async () => {
     {
@@ -224,7 +253,7 @@ describe("solana-world-id-program", () => {
         id: 1,
         jsonrpc: "2.0",
       })
-    ).data?.result;
+    )?.data?.result;
     const query = new QueryRequest(42, [
       new PerChainQueryRequest(
         ETH_CHAIN_ID,
@@ -241,39 +270,82 @@ describe("solana-world-id-program", () => {
   });
 
   it(
+    fmtTest(
+      "verify_query_signatures",
+      "Rejects guardian set account not owned by the core bridge"
+    ),
+    async () => {
+      await expect(
+        verifyQuerySigs(
+          mockQueryResponse.bytes,
+          mockQueryResponse.signatures,
+          validMockSignatureSet,
+          devnetCoreBridgeAddress,
+          0
+        )
+      ).to.be.rejectedWith(
+        "Program log: AnchorError caused by account: guardian_set. Error Code: AccountOwnedByWrongProgram."
+      );
+    }
+  );
+
+  it(
     fmtTest("verify_query_signatures", "Successfully verifies mock signatures"),
     async () => {
-      const p = anchor.getProvider();
-      const payer = anchor.web3.Keypair.fromSecretKey(PAYER_PRIVATE_KEY);
-      const instructions = await createVerifyQuerySignaturesInstructions(
-        p.connection,
-        program,
-        coreBridgeAddress,
-        payer.publicKey,
+      await verifyQuerySigs(
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
-        validMockSignatureSet.publicKey,
-        undefined,
-        mockGuardianSetIndex
+        validMockSignatureSet
       );
-      const unsignedTransactions: anchor.web3.Transaction[] = [];
-      for (let i = 0; i < instructions.length; i += 2) {
-        unsignedTransactions.push(
-          new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
-        );
-      }
-      for (const tx of unsignedTransactions) {
-        await expect(
-          anchor.web3.sendAndConfirmTransaction(p.connection, tx, [
-            payer,
-            validMockSignatureSet,
-          ])
-        ).to.be.fulfilled;
-      }
       // this will fail if the account does not exist, match discriminator, and parse
       await expect(
         program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
       ).to.be.fulfilled;
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects guardian set account mismatch"),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(coreBridgeAddress, 2),
+            signatureSet: validMockSignatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: guardian_set. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Rejects refund recipient account mismatch"
+    ),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: validMockSignatureSet.publicKey,
+            refundRecipient: next_owner.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: signature_set. Error Code: ConstraintHasOne."
+      );
     }
   );
 
@@ -298,6 +370,521 @@ describe("solana-world-id-program", () => {
           })
           .rpc()
       ).to.be.rejectedWith("RootHashMismatch");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid message hash"),
+    async () => {
+      await expect(
+        program.methods
+          .updateRootWithQuery(
+            Buffer.from(mockQueryResponse.bytes + "00", "hex"),
+            [...Buffer.from(rootHash, "hex")]
+          )
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: validMockSignatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidMessageHash");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects un-parse-able response"),
+    async () => {
+      const mock = new QueryProxyMock({});
+      const badBytes = Buffer.from("00" + mockQueryResponse.bytes, "hex");
+      const badBytesSigs = mock.sign(badBytes);
+      const signatureSet = anchor.web3.Keypair.generate();
+      await verifyQuerySigs(
+        badBytes.toString("hex"),
+        badBytesSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(badBytes, [...Buffer.from(rootHash, "hex")])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("FailedToParseResponse.");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects expired guardian set"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      await verifyQuerySigs(
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet,
+        undefined,
+        expiredMockGuardianSetIndex
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              expiredMockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("GuardianSetExpired");
+    }
+  );
+
+  it(fmtTest("update_root_with_query", "Rejects no quorum"), async () => {
+    const signatureSet = anchor.web3.Keypair.generate();
+    await verifyQuerySigs(
+      mockQueryResponse.bytes,
+      mockQueryResponse.signatures,
+      signatureSet,
+      undefined,
+      noQuorumMockGuardianSetIndex
+    );
+    await expect(
+      program.methods
+        .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+          ...Buffer.from(rootHash, "hex"),
+        ])
+        .accountsPartial({
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            noQuorumMockGuardianSetIndex
+          ),
+          signatureSet: signatureSet.publicKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith("NoQuorum");
+  });
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid number of requests"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      invalidResponse.request.requests.push(
+        invalidResponse.request.requests[0]
+      );
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidNumberOfRequests");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid request chain id"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      invalidResponse.request.requests[0].chainId = 4;
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidRequestChainId");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid request type"),
+    async () => {
+      const mock = new QueryProxyMock({
+        [ETH_CHAIN_ID]: ETH_NODE_URL,
+      });
+      const blockNumber = (
+        await axios.post(ETH_NODE_URL, {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_getBlockByNumber",
+          params: ["finalized", false],
+        })
+      )?.data?.result?.number;
+      const query = new QueryRequest(42, [
+        new PerChainQueryRequest(
+          ETH_CHAIN_ID,
+          new EthCallWithFinalityQueryRequest(blockNumber, "finalized", [
+            { to: ETH_WORLD_ID_IDENTITY_MANAGER, data: LATEST_ROOT_SIGNATURE },
+          ])
+        ),
+      ]);
+      const mockQueryResponse = await mock.mock(query);
+      const mockEthCallQueryResponse = QueryResponse.from(
+        mockQueryResponse.bytes
+      ).responses[0].response as EthCallWithFinalityQueryResponse;
+      const rootHash = mockEthCallQueryResponse.results[0].substring(2);
+      const signatureSet = anchor.web3.Keypair.generate();
+      await verifyQuerySigs(
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidRequestType");
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Rejects invalid request call data length"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const query = invalidResponse.request.requests[0]
+        .query as EthCallQueryRequest;
+      query.callData.push(query.callData[0]);
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidRequestCallDataLength");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid request contract"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const query = invalidResponse.request.requests[0]
+        .query as EthCallQueryRequest;
+      query.callData[0].to = `0x00${ETH_WORLD_ID_IDENTITY_MANAGER.substring(
+        4
+      )}`;
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidRequestContract");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid request signature"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const query = invalidResponse.request.requests[0]
+        .query as EthCallQueryRequest;
+      query.callData[0].data = `0x00${LATEST_ROOT_SIGNATURE.substring(4)}`;
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidRequestSignature");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid number of responses"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      invalidResponse.responses.push(invalidResponse.responses[0]);
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidNumberOfResponses");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid response chain id"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      invalidResponse.responses[0].chainId = 4;
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidResponseChainId");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid response type"),
+    async () => {
+      const mock = new QueryProxyMock({
+        [ETH_CHAIN_ID]: ETH_NODE_URL,
+      });
+      const blockNumber = (
+        await axios.post(ETH_NODE_URL, {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_getBlockByNumber",
+          params: ["finalized", false],
+        })
+      )?.data?.result?.number;
+      const query = new QueryRequest(42, [
+        new PerChainQueryRequest(
+          ETH_CHAIN_ID,
+          new EthCallWithFinalityQueryRequest(blockNumber, "finalized", [
+            { to: ETH_WORLD_ID_IDENTITY_MANAGER, data: LATEST_ROOT_SIGNATURE },
+          ])
+        ),
+      ]);
+      const finalityMockQueryResponse = await mock.mock(query);
+      const invalidResponse = QueryResponse.from(
+        finalityMockQueryResponse.bytes
+      );
+      invalidResponse.request = QueryResponse.from(
+        mockQueryResponse.bytes
+      ).request;
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      const signatureSet = anchor.web3.Keypair.generate();
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidResponseType");
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Rejects invalid response results length"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const queryResponse = invalidResponse.responses[0]
+        .response as EthCallQueryResponse;
+      queryResponse.results.push(queryResponse.results[0]);
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidResponseResultsLength");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects invalid response result length"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const queryResponse = invalidResponse.responses[0]
+        .response as EthCallQueryResponse;
+      queryResponse.results[0] += "00";
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("InvalidResponseResultLength");
     }
   );
 
@@ -444,6 +1031,74 @@ describe("solana-world-id-program", () => {
       await expect(
         program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
       ).to.be.rejectedWith("Account does not exist or has no data");
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Rejects valid root which already exists"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      await verifyQuerySigs(
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(mockQueryResponse.bytes, "hex"), [
+            ...Buffer.from(rootHash, "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("already in use");
+    }
+  );
+
+  it(
+    fmtTest("update_root_with_query", "Rejects stale block number"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const queryResponse = invalidResponse.responses[0]
+        .response as EthCallQueryResponse;
+      queryResponse.blockNumber = queryResponse.blockNumber - BigInt(1);
+      // root must also be spoofed to create a different account - the contract does not accept the same root twice
+      // in reality, one could have queried a block some time back, prior to the most recent root update
+      const rootHash =
+        "0x0000000000000000000000000000000000000000000000000000000000000000";
+      queryResponse.results[0] = rootHash;
+      const invalidResponseBytes = invalidResponse.serialize();
+      const invalidResponseSigs = new QueryProxyMock({}).sign(
+        invalidResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(invalidResponseBytes).toString("hex"),
+        invalidResponseSigs,
+        signatureSet
+      );
+      await expect(
+        program.methods
+          .updateRootWithQuery(Buffer.from(invalidResponseBytes), [
+            ...Buffer.from(rootHash.substring(2), "hex"),
+          ])
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            signatureSet: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith("StaleBlockNum");
     }
   );
 
