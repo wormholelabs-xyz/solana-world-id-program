@@ -8,17 +8,18 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects without deployer as signer
   - [x] Rejects incorrect program_data
   - [x] Rejects duplicate initialization
-- [ ] [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
+- [x] [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
   - [x] Successfully verifies mock signatures
   - [x] Rejects guardian set account not owned by the core bridge
-  - [ ] Rejects sysvar account mismatch
-  - [ ] Rejects signer indices instruction argument mismatch
-  - [ ] Rejects guardian set mismatch
-  - [ ] Rejects message mismatch
-  - [ ] Rejects invalid guardian key recovery
+  - [x] Rejects sysvar account mismatch
+  - [x] Rejects signer indices instruction argument mismatch
+  - [x] Rejects guardian set mismatch
+  - [x] Rejects message mismatch
+  - [x] Rejects invalid guardian key recovery
 - [x] [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
+  - [x] Successfully verifies and updates subsequent root
   - [x] Rejects valid root which already exists
   - [x] Rejects guardian set account mismatch
   - [x] Rejects refund recipient account mismatch

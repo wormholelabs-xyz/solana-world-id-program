@@ -290,6 +290,183 @@ describe("solana-world-id-program", () => {
   );
 
   it(
+    fmtTest("verify_query_signatures", "Rejects sysvar account mismatch"),
+    async () => {
+      const p = anchor.getProvider();
+      const signatureSet = anchor.web3.Keypair.generate();
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        p.connection,
+        program,
+        coreBridgeAddress,
+        p.publicKey,
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined,
+        mockGuardianSetIndex
+      );
+      const signatureStatus = new Array(19).fill(-1);
+      signatureStatus[0] = 0;
+      instructions[instructions.length - 1] = await program.methods
+        .verifyQuerySignatures(signatureStatus)
+        .accountsPartial({
+          payer: p.publicKey,
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          signatureSet: signatureSet.publicKey,
+          instructions: p.publicKey,
+        })
+        .instruction();
+      const unsignedTransactions: anchor.web3.Transaction[] = [];
+      for (let i = 0; i < instructions.length; i += 2) {
+        unsignedTransactions.push(
+          new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
+        );
+      }
+      for (const tx of unsignedTransactions) {
+        await expect(p.sendAndConfirm(tx, [signatureSet])).to.be.rejectedWith(
+          "AccountSysvarMismatch"
+        );
+      }
+    }
+  );
+
+  it(
+    fmtTest(
+      "verify_query_signatures",
+      "Rejects signer indices instruction argument mismatch"
+    ),
+    async () => {
+      const p = anchor.getProvider();
+      const signatureSet = anchor.web3.Keypair.generate();
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        p.connection,
+        program,
+        coreBridgeAddress,
+        p.publicKey,
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined,
+        mockGuardianSetIndex
+      );
+      const signatureStatus = new Array(19).fill(-1);
+      instructions[instructions.length - 1] = await program.methods
+        .verifyQuerySignatures(signatureStatus)
+        .accountsPartial({
+          payer: p.publicKey,
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          signatureSet: signatureSet.publicKey,
+        })
+        .instruction();
+      const unsignedTransactions: anchor.web3.Transaction[] = [];
+      for (let i = 0; i < instructions.length; i += 2) {
+        unsignedTransactions.push(
+          new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
+        );
+      }
+      for (const tx of unsignedTransactions) {
+        await expect(p.sendAndConfirm(tx, [signatureSet])).to.be.rejectedWith(
+          "SignerIndicesMismatch"
+        );
+      }
+    }
+  );
+
+  it(
+    fmtTest("verify_query_signatures", "Rejects guardian set mismatch"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      // start the verification with one guardian set
+      await verifyQuerySigs(
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet
+      );
+      // then try to resume it with another
+      await expect(
+        verifyQuerySigs(
+          mockQueryResponse.bytes,
+          mockQueryResponse.signatures,
+          signatureSet,
+          undefined,
+          expiredMockGuardianSetIndex
+        )
+      ).to.be.rejectedWith("GuardianSetMismatch");
+    }
+  );
+
+  it(
+    fmtTest("verify_query_signatures", "Rejects message mismatch"),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      // start the verification with one message
+      await verifyQuerySigs(
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet
+      );
+      // then try to resume it with another
+      const badBytes = Buffer.from("00" + mockQueryResponse.bytes, "hex");
+      const badBytesSigs = new QueryProxyMock({}).sign(badBytes);
+      await expect(
+        verifyQuerySigs(badBytes.toString("hex"), badBytesSigs, signatureSet)
+      ).to.be.rejectedWith("MessageMismatch");
+    }
+  );
+
+  it(
+    fmtTest("verify_query_signatures", "Rejects invalid guardian key recovery"),
+    async () => {
+      const p = anchor.getProvider();
+      const signatureSet = anchor.web3.Keypair.generate();
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        p.connection,
+        program,
+        coreBridgeAddress,
+        p.publicKey,
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined,
+        mockGuardianSetIndex
+      );
+      const signatureStatus = new Array(19).fill(-1);
+      signatureStatus[1] = 0;
+      instructions[instructions.length - 1] = await program.methods
+        .verifyQuerySignatures(signatureStatus)
+        .accountsPartial({
+          payer: p.publicKey,
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          signatureSet: signatureSet.publicKey,
+        })
+        .instruction();
+      const unsignedTransactions: anchor.web3.Transaction[] = [];
+      for (let i = 0; i < instructions.length; i += 2) {
+        unsignedTransactions.push(
+          new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
+        );
+      }
+      for (const tx of unsignedTransactions) {
+        await expect(p.sendAndConfirm(tx, [signatureSet])).to.be.rejectedWith(
+          "InvalidGuardianKeyRecovery"
+        );
+      }
+    }
+  );
+
+  it(
     fmtTest("verify_query_signatures", "Successfully verifies mock signatures"),
     async () => {
       await verifyQuerySigs(
@@ -397,9 +574,8 @@ describe("solana-world-id-program", () => {
   it(
     fmtTest("update_root_with_query", "Rejects un-parse-able response"),
     async () => {
-      const mock = new QueryProxyMock({});
       const badBytes = Buffer.from("00" + mockQueryResponse.bytes, "hex");
-      const badBytesSigs = mock.sign(badBytes);
+      const badBytesSigs = new QueryProxyMock({}).sign(badBytes);
       const signatureSet = anchor.web3.Keypair.generate();
       await verifyQuerySigs(
         badBytes.toString("hex"),
@@ -417,7 +593,7 @@ describe("solana-world-id-program", () => {
             signatureSet: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("FailedToParseResponse.");
+      ).to.be.rejectedWith("FailedToParseResponse");
     }
   );
 
@@ -1070,7 +1246,7 @@ describe("solana-world-id-program", () => {
       const invalidResponse = QueryResponse.from(mockQueryResponse.bytes);
       const queryResponse = invalidResponse.responses[0]
         .response as EthCallQueryResponse;
-      queryResponse.blockNumber = queryResponse.blockNumber - BigInt(1);
+      queryResponse.blockNumber -= BigInt(1);
       // root must also be spoofed to create a different account - the contract does not accept the same root twice
       // in reality, one could have queried a block some time back, prior to the most recent root update
       const rootHash =
@@ -1564,6 +1740,107 @@ describe("solana-world-id-program", () => {
       );
       assert(config.pendingOwner === null, "pending owner does not match");
       assert(config.owner.equals(next_owner.publicKey), "owner does not match");
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Successfully verifies and updates subsequent root"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const futureResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const mockEthCallQueryResponse = futureResponse.responses[0]
+        .response as EthCallQueryResponse;
+      mockEthCallQueryResponse.blockNumber += BigInt(1);
+      const rootHash =
+        "0000000000000000000000000000000000000000000000000000000000000000";
+      mockEthCallQueryResponse.results[0] = `0x${rootHash}`;
+      const futureResponseBytes = futureResponse.serialize();
+      const futureResponseSigs = new QueryProxyMock({}).sign(
+        futureResponseBytes
+      );
+      await verifyQuerySigs(
+        Buffer.from(futureResponseBytes).toString("hex"),
+        futureResponseSigs,
+        signatureSet
+      );
+      const rootKey = deriveRootKey(
+        program.programId,
+        Buffer.from(rootHash, "hex"),
+        0
+      );
+      const latestRootKey = deriveLatestRootKey(program.programId, 0);
+      // await expect(
+      await program.methods
+        .updateRootWithQuery(Buffer.from(futureResponseBytes), [
+          ...Buffer.from(rootHash, "hex"),
+        ])
+        .accountsPartial({
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          signatureSet: signatureSet.publicKey,
+        })
+        .rpc();
+      // ).to.be.fulfilled;
+      const root = await program.account.root.fetch(rootKey);
+      assert(
+        Buffer.from(root.readBlockHash).toString("hex") ===
+          mockEthCallQueryResponse.blockHash.substring(2),
+        "readBlockHash does not match"
+      );
+      assert(
+        root.readBlockNumber.eq(
+          new BN(mockEthCallQueryResponse.blockNumber.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        root.readBlockTime.eq(
+          new BN(mockEthCallQueryResponse.blockTime.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        root.expiryTime.eq(
+          new BN(
+            (
+              mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
+              BigInt(1)
+            ).toString()
+          )
+        ),
+        "expiryTime is incorrect"
+      );
+      assert(
+        root.refundRecipient.equals(anchor.getProvider().publicKey),
+        "refundRecipient does not match"
+      );
+      const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
+      assert(
+        Buffer.from(latestRoot.readBlockHash).toString("hex") ===
+          mockEthCallQueryResponse.blockHash.substring(2),
+        "readBlockHash does not match"
+      );
+      assert(
+        latestRoot.readBlockNumber.eq(
+          new BN(mockEthCallQueryResponse.blockNumber.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        latestRoot.readBlockTime.eq(
+          new BN(mockEthCallQueryResponse.blockTime.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
+        "root does not match"
+      );
     }
   );
 });
