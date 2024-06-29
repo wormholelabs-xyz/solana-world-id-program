@@ -2,13 +2,13 @@
 
 The goal of these tests is to provide positive and negative cases for account annotations and custom errors in the Solana World ID program.
 
-- [x] [initialize](programs/solana-world-id-program/src/instructions/initialize.rs)
+- [x] [initialize](/programs/solana-world-id-program/src/instructions/initialize.rs)
   - [x] Successfully initializes
   - [x] Rejects deployer account mismatch
   - [x] Rejects without deployer as signer
   - [x] Rejects incorrect program_data
   - [x] Rejects duplicate initialization
-- [x] [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
+- [x] [verify_query_signatures](/programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
   - [x] Successfully verifies mock signatures
   - [x] Rejects guardian set account not owned by the core bridge
   - [x] Rejects sysvar account mismatch
@@ -16,7 +16,7 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects guardian set mismatch
   - [x] Rejects message mismatch
   - [x] Rejects invalid guardian key recovery
-- [x] [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
+- [x] [update_root_with_query](/programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
   - [x] Successfully verifies and updates subsequent root
@@ -41,35 +41,35 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects stale block time
   - [x] Rejects invalid response results length
   - [x] Rejects invalid response result length
-- [x] [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs)
+- [x] [clean_up_root](/programs/solana-world-id-program/src/instructions/clean_up_root.rs)
   - [x] Successfully cleans up an expired root
   - [x] Rejects root hash instruction argument mismatch
   - [x] Rejects verification type instruction argument mismatch
   - [x] Rejects refund recipient account mismatch
   - [x] Rejects active root clean up
-- [x] [update_root_expiry](programs/solana-world-id-program/src/instructions/update_root_expiry.rs)
+- [x] [update_root_expiry](/programs/solana-world-id-program/src/instructions/update_root_expiry.rs)
   - [x] Successfully updates root expiry
   - [x] Rejects root hash instruction argument mismatch
   - [x] Rejects verification type instruction argument mismatch
   - [x] Rejects noop root expiry update
-- [ ] [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
+- [ ] [transfer_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [ ] Successfully initiates ownership transfer (test in devnet)
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
   - [x] Rejects incorrect program_data
   - [ ] Rejects when authority is already upgrade lock (test in devnet)
-- [ ] [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs)
+- [ ] [claim_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [ ] Successfully completes ownership transfer (test in devnet)
   - [ ] Successfully cancels ownership transfer (test in devnet)
   - [x] Rejects when upgrade_lock is not upgrade_authority_address
   - [x] Rejects owner or pending owner account mismatch
   - [x] Rejects without owner or pending owner as signer
   - [x] Rejects incorrect program_data
-- [x] [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs)
+- [x] [set_root_expiry](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully updates expiry config
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
-- [x] [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs)
+- [x] [set_allowed_update_staleness](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully updates staleness config
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
