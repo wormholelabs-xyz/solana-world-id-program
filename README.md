@@ -38,13 +38,15 @@ This is akin to the EVM L2 [State Bridge Service](https://github.com/worldcoin/w
 
 ### Testing
 
-Change the following line in `solana-world-id-program.ts` from `it` to `it.only`:
+#### Localnet Mock
+
+Optionally, change the following line in `solana-world-id-program.ts` from `it` to `it.only`:
 
 ```ts
   it(fmtTest("initialize", "Successfully initializes"), async () => {
 ```
 
-Then run the following to start a local validator:
+Run the following to start a local validator:
 
 ```bash
 anchor test --detach
@@ -53,10 +55,24 @@ anchor test --detach
 Finally, run
 
 ```bash
-npm start
+NETWORK=localnet npm start
 ```
 
-Running `npm start` subsequent times will update the root again, as necessary.
+Running `NETWORK=localnet npm start` subsequent times will update the root again, as necessary.
+
+#### Testnet Mock
+
+Akin to the above but
+
+```bash
+anchor test --detach -- --no-default-features --features testnet
+```
+
+and
+
+```bash
+NETWORK=testnet SOLANA_RPC_URL="http://127.0.0.1:8899" WALLET="../tests/keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json" npm start
+```
 
 ## SolanaWorldID Program
 
@@ -90,4 +106,18 @@ This is akin to the [World ID State Bridge](https://github.com/worldcoin/world-i
 
 ```bash
 anchor test
+```
+
+### Building
+
+#### Wormhole Testnet / Solana Devnet
+
+```bash
+anchor build -- --no-default-features --features testnet
+```
+
+#### Mainnet
+
+```bash
+anchor build
 ```
