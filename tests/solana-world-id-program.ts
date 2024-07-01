@@ -24,7 +24,7 @@ import { deriveConfigKey } from "./helpers/config";
 
 use(chaiAsPromised);
 
-const ETH_NODE_URL = "https://ethereum-rpc.publicnode.com";
+const ETH_RPC_URL = "https://ethereum-rpc.publicnode.com";
 // https://docs.wormhole.com/wormhole/reference/constants
 const ETH_CHAIN_ID = 2;
 // https://etherscan.io/address/0xf7134CE138832c1456F2a91D64621eE90c2bddEa
@@ -244,10 +244,10 @@ describe("solana-world-id-program", () => {
 
   it(fmtTest("helper", "Mocks query"), async () => {
     const mock = new QueryProxyMock({
-      [ETH_CHAIN_ID]: ETH_NODE_URL,
+      [ETH_CHAIN_ID]: ETH_RPC_URL,
     });
     const blockNumber = (
-      await axios.post(ETH_NODE_URL, {
+      await axios.post(ETH_RPC_URL, {
         method: "eth_blockNumber",
         params: [],
         id: 1,
@@ -720,10 +720,10 @@ describe("solana-world-id-program", () => {
     fmtTest("update_root_with_query", "Rejects invalid request type"),
     async () => {
       const mock = new QueryProxyMock({
-        [ETH_CHAIN_ID]: ETH_NODE_URL,
+        [ETH_CHAIN_ID]: ETH_RPC_URL,
       });
       const blockNumber = (
-        await axios.post(ETH_NODE_URL, {
+        await axios.post(ETH_RPC_URL, {
           jsonrpc: "2.0",
           id: 1,
           method: "eth_getBlockByNumber",
@@ -941,10 +941,10 @@ describe("solana-world-id-program", () => {
     fmtTest("update_root_with_query", "Rejects invalid response type"),
     async () => {
       const mock = new QueryProxyMock({
-        [ETH_CHAIN_ID]: ETH_NODE_URL,
+        [ETH_CHAIN_ID]: ETH_RPC_URL,
       });
       const blockNumber = (
-        await axios.post(ETH_NODE_URL, {
+        await axios.post(ETH_RPC_URL, {
           jsonrpc: "2.0",
           id: 1,
           method: "eth_getBlockByNumber",
@@ -1431,6 +1431,19 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  it(
+    fmtTest("set_root_expiry", "Successfully updates expiry config (again)"),
+    async () => {
+      const twentyFourHours = new BN(24 * 60 * 60);
+      await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
+        .fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(config.rootExpiry.eq(twentyFourHours), "config does not match");
+    }
+  );
+
   it(fmtTest("set_root_expiry", "Rejects owner account mismatch"), async () => {
     const program = programPaidBy(next_owner);
     await expect(
@@ -1809,7 +1822,7 @@ describe("solana-world-id-program", () => {
           new BN(
             (
               mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
-              BigInt(1)
+              BigInt(24 * 60 * 60)
             ).toString()
           )
         ),
