@@ -19,13 +19,26 @@ use wormhole_solana_consts::CORE_BRIDGE_PROGRAM_ID;
 // https://github.com/wormhole-foundation/example-native-token-transfers/blob/c0b0e69c03b3f83ce5a0f8d676d6a82a82443c1a/solana/programs/example-native-token-transfers/src/lib.rs#L80C12-L80C19
 // https://github.com/wormhole-foundation/example-native-token-transfers/blob/c0b0e69c03b3f83ce5a0f8d676d6a82a82443c1a/solana/ts/lib/ntt.ts#L156
 
-// https://docs.wormhole.com/wormhole/reference/constants
-pub const ETH_CHAIN_ID: u16 = 2;
-// https://etherscan.io/address/0xf7134CE138832c1456F2a91D64621eE90c2bddEa
-pub const ETH_WORLD_ID_IDENTITY_MANAGER: [u8; 20] = [
-    0xf7, 0x13, 0x4c, 0xe1, 0x38, 0x83, 0x2c, 0x14, 0x56, 0xf2, 0xa9, 0x1d, 0x64, 0x62, 0x1e, 0xe9,
-    0x0c, 0x2b, 0xdd, 0xea,
-];
+cfg_if::cfg_if! {
+    if #[cfg(feature = "mainnet")] {
+        // https://docs.wormhole.com/wormhole/reference/constants
+        pub const ETH_CHAIN_ID: u16 = 2;
+        // https://docs.worldcoin.org/reference/address-book
+        // https://etherscan.io/address/0xf7134CE138832c1456F2a91D64621eE90c2bddEa
+        pub const ETH_WORLD_ID_IDENTITY_MANAGER: [u8; 20] = [
+            0xf7, 0x13, 0x4c, 0xe1, 0x38, 0x83, 0x2c, 0x14, 0x56, 0xf2, 0xa9, 0x1d, 0x64, 0x62, 0x1e, 0xe9,
+            0x0c, 0x2b, 0xdd, 0xea,
+        ];
+    } else if #[cfg(feature = "testnet")] {
+        // https://docs.wormhole.com/wormhole/reference/constants
+        pub const ETH_CHAIN_ID: u16 = 10002;
+        // https://docs.worldcoin.org/reference/address-book
+        // https://sepolia.etherscan.io/address/0x928a514350A403e2f5e3288C102f6B1CCABeb37C
+        pub const ETH_WORLD_ID_IDENTITY_MANAGER: [u8; 20] = [
+            0x92, 0x8a, 0x51, 0x43, 0x50, 0xa4, 0x03, 0xe2, 0xf5, 0xe3, 0x28, 0x8c, 0x10, 0x2f, 0x6b, 0x1c, 0xca, 0xbe, 0xb3, 0x7c
+        ];
+    }
+}
 // web3.eth.abi.encodeFunctionSignature("latestRoot()");
 pub const LATEST_ROOT_SIGNATURE: [u8; 4] = [0xd7, 0xb0, 0xfe, 0xf1];
 

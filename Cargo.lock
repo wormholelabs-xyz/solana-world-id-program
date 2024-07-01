@@ -1591,6 +1591,7 @@ name = "solana-world-id-program"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "cfg-if",
  "wormhole-query-sdk",
  "wormhole-solana-consts",
  "wormhole-solana-utils",
