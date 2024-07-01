@@ -2,12 +2,14 @@
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "start": "tsx app/bridge.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
     "@wormhole-foundation/wormhole-query-sdk": "^0.0.12",
-    "axios": "^1.7.2"
+    "axios": "^1.7.2",
+    "tsx": "^4.16.0"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

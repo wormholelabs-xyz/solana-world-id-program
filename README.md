@@ -36,6 +36,28 @@ The Ethereum-to-Solana State Bridge Service is responsible for monitoring the Wo
 
 This is akin to the EVM L2 [State Bridge Service](https://github.com/worldcoin/world-tree/blob/0fb6223eb29b3ad97a5745b0f9e7a3b32234cd50/README.md#state-bridge-service)
 
+### Testing
+
+Change the following line in `solana-world-id-program.ts` from `it` to `it.only`:
+
+```ts
+  it(fmtTest("initialize", "Successfully initializes"), async () => {
+```
+
+Then run the following to start a local validator:
+
+```bash
+anchor test --detach
+```
+
+Finally, run
+
+```bash
+npm start
+```
+
+Running `npm start` subsequent times will update the root again, as necessary.
+
 ## SolanaWorldID Program
 
 This program serves two purposes:
@@ -63,3 +85,9 @@ This is akin to the [World ID State Bridge](https://github.com/worldcoin/world-i
 - [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs) is the second step of the ownership transfer process, signed by either the `pending_owner` (to accept) or the existing `owner` (to cancel).
 - [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs) sets the `root_expiry` field. The `owner` must sign.
 - [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs) sets the `allowed_update_staleness` field. The `owner` must sign.
+
+### Testing
+
+```bash
+anchor test
+```
