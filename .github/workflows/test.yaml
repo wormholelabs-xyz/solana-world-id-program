@@ -8,7 +8,7 @@ on:
       - main
 
 jobs:
-  test:
+  anchor-test:
     name: Anchor Test
     runs-on: ubuntu-latest
     steps:
@@ -28,5 +28,16 @@ jobs:
           anchor-version: "${{steps.anchor.outputs.version}}"
           solana-cli-version: "${{steps.solana.outputs.version}}"
 
+  rust-checks:
+    name: Rust Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
       - run: cargo fmt --check --all
       - run: cargo clippy
+      - run: cargo test

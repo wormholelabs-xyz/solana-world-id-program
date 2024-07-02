@@ -9,7 +9,7 @@ export const ETHEREUM_KEY_LENGTH = 20;
  *
  * @param {Buffer[]} signatures - 65-byte signatures (64 bytes + 1 byte recovery id)
  * @param {Buffer[]} keys - 20-byte ethereum public keys
- * @param {Buffer} message - 32-byte hash
+ * @param {Buffer} message - 67-byte hash, but can be different length for testing error cases
  * @returns Solana instruction for Secp256k1 program
  */
 export function createSecp256k1Instruction(
@@ -66,21 +66,28 @@ export class Secp256k1SignatureOffsets {
    *
    * @param {Buffer[]} signatures - 65-byte signatures (64 + 1 recovery id)
    * @param {Buffer[]} keys - ethereum public keys
-   * @param {Buffer} message - 32-byte hash
+   * @param {Buffer} message - 67-byte hash, but can be different length for testing error cases
+   * @see [InvalidVerifySigIx](https://github.com/wormholelabs-xyz/solana-world-id-program/blob/bing/verify_query_signature_test/programs/solana-world-id-program/src/instructions/verify_query_signatures.rs#L194)
    * @returns serialized Secp256k1 instruction data
    */
   static serialize(signatures: Buffer[], keys: Buffer[], message: Buffer) {
+    // instead of throwing an error, we want to return a an empty sig verify offset data
+    // to test for `EmptySigVerifyInstruction` error
     if (signatures.length == 0) {
-      throw Error("signatures.length == 0");
+      const serialized = Buffer.alloc(1);
+      serialized.writeUInt8(0, 0); // Write 0 as the number of signatures
+      return serialized;
     }
 
     if (signatures.length != keys.length) {
       throw Error("signatures.length != keys.length");
     }
 
-    if (message.length != 67) {
-      throw Error("message.length != 67");
-    }
+    // Removed this check because we want to be able to use this with any message length
+    // To accommodate for `Rejects when message size doesn't match QUERY_MESSAGE_LEN`
+    // if (message.length != 67) {
+    //   throw Error("message.length != 67");
+    // }
 
     const numSignatures = signatures.length;
     const offsetSpan = 11;

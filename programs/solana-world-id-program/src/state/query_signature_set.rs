@@ -21,7 +21,7 @@ pub struct QuerySignatureSet {
 
 impl QuerySignatureSet {
     pub fn is_initialized(&self) -> bool {
-        self.sig_verify_successes.iter().any(|&value| value)
+        !self.sig_verify_successes.is_empty()
     }
 
     pub fn num_verified(&self) -> usize {

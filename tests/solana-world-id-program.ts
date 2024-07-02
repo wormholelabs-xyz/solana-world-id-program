@@ -3,13 +3,13 @@ import { Program } from "@coral-xyz/anchor";
 import {
   EthCallQueryRequest,
   EthCallQueryResponse,
-  EthCallWithFinalityQueryRequest,
-  EthCallWithFinalityQueryResponse,
   PerChainQueryRequest,
   QueryProxyMock,
   QueryProxyQueryResponse,
   QueryRequest,
   QueryResponse,
+  EthCallWithFinalityQueryRequest,
+  EthCallWithFinalityQueryResponse,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import axios from "axios";
 import { BN } from "bn.js";
@@ -25,6 +25,7 @@ import {
   hashToField,
 } from "./helpers/utils/hashing";
 import { createVerifyQuerySignaturesInstructions } from "./helpers/verifySignature";
+import { SystemProgram } from "@solana/web3.js";
 
 use(chaiAsPromised);
 
@@ -118,6 +119,165 @@ describe("solana-world-id-program", () => {
     for (const tx of unsignedTransactions) {
       await p.sendAndConfirm(tx, [signatureSet]);
     }
+  }
+
+  async function getCurrentBlockNumber(program: Program<SolanaWorldIdProgram>) {
+    const latestRootKey = deriveLatestRootKey(program.programId, 0);
+    const currentLatestRoot = await program.account.latestRoot.fetch(
+      latestRootKey
+    );
+    return currentLatestRoot.readBlockNumber;
+  }
+
+  function createMockResponse(
+    mockQueryResponse: QueryProxyQueryResponse,
+    blockNumber: anchor.BN,
+    blockTime: bigint,
+    rootHash: string
+  ) {
+    const response = QueryResponse.from(mockQueryResponse.bytes);
+    const ethCallQueryResponse = response.responses[0]
+      .response as EthCallQueryResponse;
+    ethCallQueryResponse.blockNumber = BigInt(blockNumber.toString());
+    ethCallQueryResponse.blockTime = blockTime;
+    ethCallQueryResponse.results[0] = `0x${rootHash}`;
+    return response;
+  }
+
+  async function signAndVerifyResponse(response: QueryResponse) {
+    const responseBytes = response.serialize();
+    const responseSigs = new QueryProxyMock({}).sign(responseBytes);
+    const signatureSet = anchor.web3.Keypair.generate();
+    await verifyQuerySigs(
+      Buffer.from(responseBytes).toString("hex"),
+      responseSigs,
+      signatureSet
+    );
+    return { responseBytes, signatureSet };
+  }
+
+  async function updateRootWithQuery(
+    program: Program<SolanaWorldIdProgram>,
+    responseBytes: Buffer,
+    rootHash: string,
+    signatureSet: anchor.web3.Keypair
+  ) {
+    await program.methods
+      .updateRootWithQuery(responseBytes, [...Buffer.from(rootHash, "hex")])
+      .accountsPartial({
+        guardianSet: deriveGuardianSetKey(
+          coreBridgeAddress,
+          mockGuardianSetIndex
+        ),
+        signatureSet: signatureSet.publicKey,
+      })
+      .rpc();
+  }
+
+  async function verifyRootUpdate(
+    program: Program<SolanaWorldIdProgram>,
+    rootHash: string,
+    queryResponse: EthCallQueryResponse
+  ) {
+    const rootKey = deriveRootKey(
+      program.programId,
+      Buffer.from(rootHash, "hex"),
+      0
+    );
+    const root = await program.account.root.fetch(rootKey);
+    const config = await program.account.config.fetch(
+      deriveConfigKey(program.programId)
+    );
+    assertRootMatches(
+      root,
+      queryResponse,
+      config,
+      anchor.getProvider().publicKey
+    );
+
+    const latestRootKey = deriveLatestRootKey(program.programId, 0);
+    const updatedLatestRoot = await program.account.latestRoot.fetch(
+      latestRootKey
+    );
+    assertLatestRootMatches(updatedLatestRoot, queryResponse, rootHash);
+  }
+
+  function assertRootMatches(
+    root: {
+      bump: number;
+      readBlockNumber: anchor.BN;
+      readBlockHash: number[];
+      readBlockTime: anchor.BN;
+      expiryTime: anchor.BN;
+      refundRecipient: anchor.web3.PublicKey;
+    },
+    queryResponse: EthCallQueryResponse,
+    config: {
+      bump?: number;
+      owner?: anchor.web3.PublicKey;
+      pendingOwner?: anchor.web3.PublicKey;
+      rootExpiry: anchor.BN;
+      allowedUpdateStaleness?: anchor.BN;
+    },
+    refundRecipient: anchor.web3.PublicKey
+  ) {
+    assert(
+      Buffer.from(root.readBlockHash).toString("hex") ===
+        queryResponse.blockHash.substring(2),
+      "readBlockHash does not match"
+    );
+    assert(
+      root.readBlockNumber.eq(new BN(queryResponse.blockNumber.toString())),
+      "readBlockNumber does not match"
+    );
+    assert(
+      root.readBlockTime.eq(new BN(queryResponse.blockTime.toString())),
+      "readBlockTime does not match"
+    );
+    assert(
+      root.expiryTime.eq(
+        new BN(queryResponse.blockTime.toString())
+          .div(new BN(1_000_000))
+          .add(config.rootExpiry)
+      ),
+      "expiryTime is incorrect"
+    );
+    assert(
+      root.refundRecipient.equals(refundRecipient),
+      "refundRecipient does not match"
+    );
+  }
+
+  function assertLatestRootMatches(
+    latestRoot: {
+      bump: number;
+      readBlockNumber: anchor.BN;
+      readBlockHash: number[];
+      readBlockTime: anchor.BN;
+      root: number[];
+    },
+    queryResponse: EthCallQueryResponse,
+    rootHash: string
+  ) {
+    assert(
+      Buffer.from(latestRoot.readBlockHash).toString("hex") ===
+        queryResponse.blockHash.substring(2),
+      "latest root readBlockHash does not match"
+    );
+    assert(
+      latestRoot.readBlockNumber.eq(
+        new BN(queryResponse.blockNumber.toString())
+      ),
+      "latest root readBlockNumber does not match"
+    );
+    assert(
+      latestRoot.readBlockTime.eq(new BN(queryResponse.blockTime.toString())),
+      "latest root readBlockTime does not match"
+    );
+    assert(
+      Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
+      "latest root does not match"
+    );
   }
 
   it(fmtTest("initialize", "Rejects deployer account mismatch"), async () => {
@@ -481,8 +641,162 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  // This test is to ensure that we reject when grabbing the instruction before the `verify_query_signature` throws an error.
+  it(
+    fmtTest(
+      "verify_query_signatures",
+      "Rejects when there's no preceding Secp256k1 instruction"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const provider = anchor.getProvider();
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        provider.connection,
+        program,
+        coreBridgeAddress,
+        provider.publicKey,
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined,
+        mockGuardianSetIndex
+      );
+
+      // Only keep the last instruction (verify_query_signatures)
+      const verifyInstruction = instructions[instructions.length - 1];
+
+      const tx = new anchor.web3.Transaction().add(verifyInstruction);
+      await expect(
+        provider.sendAndConfirm(tx, [signatureSet])
+      ).to.be.rejectedWith("InstructionAtWrongIndex");
+    }
+  );
+
+  // This test is to ensure that we reject when the preceding instruction is not a Secp256k1 instruction.
+  it(
+    fmtTest(
+      "verify_query_signatures",
+      "Rejects when preceding instruction is not Secp256k1"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const provider = anchor.getProvider();
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        provider.connection,
+        program,
+        coreBridgeAddress,
+        provider.publicKey,
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined,
+        mockGuardianSetIndex
+      );
+
+      // Insert a dummy instruction between Secp256k1 and verify_query_signatures
+      const dummyInstruction = SystemProgram.transfer({
+        fromPubkey: provider.publicKey,
+        toPubkey: provider.publicKey,
+        lamports: 100,
+      });
+
+      instructions.splice(instructions.length - 1, 0, dummyInstruction);
+
+      const tx = new anchor.web3.Transaction().add(...instructions);
+      await expect(
+        provider.sendAndConfirm(tx, [signatureSet])
+      ).to.be.rejectedWith("InvalidSigVerifyInstruction");
+    }
+  );
+
+  it(
+    fmtTest("verify_query_signatures", "Rejects message with incorrect size"),
+    async () => {
+      const p = anchor.getProvider();
+      const signatureSet = anchor.web3.Keypair.generate();
+
+      // Create an incorrect message by adding an extra byte
+      const incorrectBytes = Buffer.concat([
+        Buffer.from(mockQueryResponse.bytes, "hex"),
+        Buffer.alloc(1),
+      ]);
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        p.connection,
+        program,
+        coreBridgeAddress,
+        p.publicKey,
+        incorrectBytes.toString("hex"),
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined
+      );
+
+      // Now try to update the root with the incorrect bytes
+      const tx = new anchor.web3.Transaction().add(...instructions);
+
+      expect(p.sendAndConfirm(tx, [signatureSet])).to.be.rejectedWith(
+        "InvalidSigVerifyInstruction"
+      );
+    }
+  );
+
+  it(
+    fmtTest("verify_query_signatures", "Rejects empty sig verify instruction"),
+    async () => {
+      const p = anchor.getProvider();
+      const signatureSet = anchor.web3.Keypair.generate();
+
+      // Create an incorrect message by adding an extra byte
+      const incorrectBytes = Buffer.concat([
+        Buffer.from(mockQueryResponse.bytes, "hex"),
+        Buffer.alloc(1),
+      ]);
+
+      const instructions = await createVerifyQuerySignaturesInstructions(
+        p.connection,
+        program,
+        coreBridgeAddress,
+        p.publicKey,
+        incorrectBytes.toString("hex"),
+        mockQueryResponse.signatures,
+        signatureSet.publicKey,
+        undefined,
+        0,
+        true
+      );
+
+      const tx = new anchor.web3.Transaction().add(...instructions);
+      await expect(p.sendAndConfirm(tx, [signatureSet])).to.be.rejectedWith(
+        "EmptySigVerifyInstruction"
+      );
+    }
+  );
+
   it(
     fmtTest("verify_query_signatures", "Successfully verifies mock signatures"),
+    async () => {
+      await verifyQuerySigs(
+        mockQueryResponse.bytes,
+        mockQueryResponse.signatures,
+        validMockSignatureSet
+      );
+      // this will fail if the account does not exist, match discriminator, and parse
+      await expect(
+        program.account.querySignatureSet.fetch(validMockSignatureSet.publicKey)
+      ).to.be.fulfilled;
+    }
+  );
+
+  // A repeat of the above test, but this time the signature set account is already initialized
+  // in above test.
+  it(
+    fmtTest(
+      "verify_query_signatures",
+      "Successfully verifies mock signatures after initialization"
+    ),
     async () => {
       await verifyQuerySigs(
         mockQueryResponse.bytes,
@@ -1638,6 +1952,33 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  it(
+    fmtTest(
+      "transfer_ownership",
+      "Rejects when upgrade_lock account is incorrect"
+    ),
+    async () => {
+      const incorrectUpgradeLock = anchor.web3.Keypair.generate().publicKey;
+      const programData = anchor.web3.PublicKey.findProgramAddressSync(
+        [program.programId.toBuffer()],
+        new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+      )[0];
+
+      await expect(
+        program.methods
+          .transferOwnership()
+          .accountsPartial({
+            newOwner: next_owner.publicKey,
+            upgradeLock: incorrectUpgradeLock,
+            programData,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: upgrade_lock. Error Code: ConstraintSeeds"
+      );
+    }
+  );
+
   it(fmtTest("claim_ownership", "Rejects incorrect program_data"), async () => {
     const programData = anchor.web3.PublicKey.findProgramAddressSync(
       [devnetCoreBridgeAddress.toBuffer()],
@@ -1820,59 +2161,96 @@ describe("solana-world-id-program", () => {
         .rpc();
       // ).to.be.fulfilled;
       const root = await program.account.root.fetch(rootKey);
-      assert(
-        Buffer.from(root.readBlockHash).toString("hex") ===
-          mockEthCallQueryResponse.blockHash.substring(2),
-        "readBlockHash does not match"
-      );
-      assert(
-        root.readBlockNumber.eq(
-          new BN(mockEthCallQueryResponse.blockNumber.toString())
-        ),
-        "readBlockNumber does not match"
-      );
-      assert(
-        root.readBlockTime.eq(
-          new BN(mockEthCallQueryResponse.blockTime.toString())
-        ),
-        "readBlockNumber does not match"
-      );
-      assert(
-        root.expiryTime.eq(
-          new BN(
-            (
-              mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
-              BigInt(24 * 60 * 60)
-            ).toString()
-          )
-        ),
-        "expiryTime is incorrect"
-      );
-      assert(
-        root.refundRecipient.equals(anchor.getProvider().publicKey),
-        "refundRecipient does not match"
+      assertRootMatches(
+        root,
+        mockEthCallQueryResponse,
+        { rootExpiry: new BN(24 * 60 * 60) }, // Assuming 24 hours expiry
+        anchor.getProvider().publicKey
       );
       const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
-      assert(
-        Buffer.from(latestRoot.readBlockHash).toString("hex") ===
-          mockEthCallQueryResponse.blockHash.substring(2),
-        "readBlockHash does not match"
+      assertLatestRootMatches(latestRoot, mockEthCallQueryResponse, rootHash);
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Successfully updates root with maximum allowed staleness"
+    ),
+    async () => {
+      const maxStaleness = new BN("18446744073709551615"); // u64::MAX
+      await program.methods.setAllowedUpdateStaleness(maxStaleness).rpc();
+
+      const currentBlockNumber = await getCurrentBlockNumber(program);
+      const oldRootHash =
+        "0000000000000000000000000000000000000000000000000000000000000001";
+      const oldResponse = createMockResponse(
+        mockQueryResponse,
+        currentBlockNumber.add(new BN(1)),
+        BigInt(1000000), // Set to a very old time (1 second after epoch)
+        oldRootHash
       );
-      assert(
-        latestRoot.readBlockNumber.eq(
-          new BN(mockEthCallQueryResponse.blockNumber.toString())
-        ),
-        "readBlockNumber does not match"
+
+      const { responseBytes, signatureSet } = await signAndVerifyResponse(
+        oldResponse
       );
-      assert(
-        latestRoot.readBlockTime.eq(
-          new BN(mockEthCallQueryResponse.blockTime.toString())
-        ),
-        "readBlockNumber does not match"
+
+      await expect(
+        updateRootWithQuery(
+          program,
+          Buffer.from(responseBytes),
+          oldRootHash,
+          signatureSet
+        )
+      ).to.be.fulfilled;
+
+      await verifyRootUpdate(
+        program,
+        oldRootHash,
+        EthCallQueryResponse.from(oldResponse.responses[0].response.serialize())
       );
-      assert(
-        Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
-        "root does not match"
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Successfully handles allowed update staleness underflow gracefully"
+    ),
+    async () => {
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const slightlyMoreThanCurrentTime = new BN(currentTimestamp + 10);
+      await program.methods
+        .setAllowedUpdateStaleness(slightlyMoreThanCurrentTime)
+        .rpc();
+
+      const currentBlockNumber = await getCurrentBlockNumber(program);
+      const newRootHash =
+        "0000000000000000000000000000000000000000000000000000000000000002";
+      const newResponse = createMockResponse(
+        mockQueryResponse,
+        currentBlockNumber.add(new BN(1)),
+        BigInt(currentTimestamp * 1_000_000), // Convert to microseconds
+        newRootHash
+      );
+
+      const { responseBytes, signatureSet } = await signAndVerifyResponse(
+        newResponse
+      );
+
+      await expect(
+        updateRootWithQuery(
+          program,
+          Buffer.from(responseBytes),
+          newRootHash,
+          signatureSet
+        )
+      ).to.be.fulfilled;
+
+      await verifyRootUpdate(
+        program,
+        newRootHash,
+        EthCallQueryResponse.from(newResponse.responses[0].response.serialize())
       );
     }
   );

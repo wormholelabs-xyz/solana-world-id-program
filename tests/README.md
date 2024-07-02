@@ -16,10 +16,19 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects guardian set mismatch
   - [x] Rejects message mismatch
   - [x] Rejects invalid guardian key recovery
+  - [x] Rejects when there's no preceding Secp256k1 instruction
+  - [x] Rejects when preceding instruction is not Secp256k1
+  - [x] Rejects message with incorrect size
+  - [ ] Rejects mismatched signature instruction index
+  - [ ] Rejects mismatched eth_pubkey instruction index
+  - [ ] Rejects mismatched message instruction index
+  - [x] Rejects empty sig verify instruction
 - [x] [update_root_with_query](/programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
   - [x] Successfully verifies and updates subsequent root
+  - [x] Successfully updates root with maximum allowed staleness
+  - [x] Successfully handles allowed update staleness underflow gracefully
   - [x] Rejects valid root which already exists
   - [x] Rejects guardian set account mismatch
   - [x] Rejects refund recipient account mismatch
@@ -57,6 +66,7 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
   - [x] Rejects incorrect program_data
+  - [x] Rejects when upgrade_lock account is incorrect
   - [ ] Rejects when authority is already upgrade lock (test in devnet)
 - [ ] [claim_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [ ] Successfully completes ownership transfer (test in devnet)

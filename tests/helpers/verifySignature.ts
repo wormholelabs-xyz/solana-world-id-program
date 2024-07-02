@@ -17,7 +17,8 @@ export async function createVerifyQuerySignaturesInstructions(
   signatures: string[],
   signatureSet: anchor.web3.PublicKey,
   commitment?: anchor.web3.Commitment,
-  guardianSetIndex?: number
+  guardianSetIndex?: number,
+  emptySigVerify = false
 ): Promise<anchor.web3.TransactionInstruction[]> {
   const MAX_LEN_GUARDIAN_KEYS = 19;
 
@@ -64,7 +65,12 @@ export async function createVerifyQuerySignaturesInstructions(
       signatureStatus[item.index] = j;
     }
 
-    instructions.push(createSecp256k1Instruction(signatures, keys, hash));
+    // for when we want to test the case where the signatures is empty
+    // `EmptySigVerifyInstruction` will be thrown
+    const sigVerifyInstruction = emptySigVerify
+      ? createSecp256k1Instruction([], [], hash)
+      : createSecp256k1Instruction(signatures, keys, hash);
+    instructions.push(sigVerifyInstruction);
 
     const ix = await program.methods
       .verifyQuerySignatures(signatureStatus)

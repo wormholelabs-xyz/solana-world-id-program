@@ -42,6 +42,12 @@ cfg_if::cfg_if! {
 // web3.eth.abi.encodeFunctionSignature("latestRoot()");
 pub const LATEST_ROOT_SIGNATURE: [u8; 4] = [0xd7, 0xb0, 0xfe, 0xf1];
 
+#[test]
+fn test_latest_root_signature() {
+    let hash = solana_program::keccak::hashv(&[b"latestRoot()"]).to_bytes();
+    assert_eq!(LATEST_ROOT_SIGNATURE, hash[0..4]);
+}
+
 /// Compute quorum based on the number of guardians in a guardian set.
 #[inline]
 pub fn quorum(num_guardians: usize) -> usize {
