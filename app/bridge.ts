@@ -29,6 +29,15 @@ const NETWORK =
     ? "testnet"
     : "mainnet";
 console.log("Network:         ", NETWORK);
+const MOCK = NETWORK === "localnet" || process.env.MOCK === "true";
+const QUERY_URL =
+  NETWORK === "testnet"
+    ? "https://testnet.query.wormhole.com/v1/query"
+    : "https://query.wormhole.com/v1/query";
+const QUERY_API_KEY = process.env.QUERY_API_KEY;
+if (!MOCK && !QUERY_API_KEY) {
+  throw new Error("QUERY_API_KEY is required when MOCK is not set");
+}
 
 const ETH_RPC_URL =
   process.env.ETH_RPC_URL ||
@@ -136,10 +145,20 @@ async function queryEthLatestRoot(
       ])
     ),
   ]);
-  const mock = new QueryProxyMock({
-    [ETH_CHAIN_ID]: ETH_RPC_URL,
-  });
-  return await mock.mock(query);
+  if (MOCK) {
+    const mock = new QueryProxyMock({
+      [ETH_CHAIN_ID]: ETH_RPC_URL,
+    });
+    return await mock.mock(query);
+  }
+  const serialized = Buffer.from(query.serialize()).toString("hex");
+  return (
+    await axios.post<QueryProxyQueryResponse>(
+      QUERY_URL,
+      { bytes: serialized },
+      { headers: { "X-API-Key": QUERY_API_KEY } }
+    )
+  ).data;
 }
 
 async function verifyQuerySigs(
