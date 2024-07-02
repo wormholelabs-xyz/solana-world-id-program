@@ -36,6 +36,10 @@ The Ethereum-to-Solana State Bridge Service is responsible for monitoring the Wo
 
 This is akin to the EVM L2 [State Bridge Service](https://github.com/worldcoin/world-tree/blob/0fb6223eb29b3ad97a5745b0f9e7a3b32234cd50/README.md#state-bridge-service)
 
+### Design
+
+The bridge service provided in `/app` is a TypeScript program designed to be run either in a scheduled lambda / cloud function setting or as a service. If the `SLEEP` environment variable is set, it will run as a service, sleeping for `SLEEP` seconds between calls and will not exit on errors, otherwise it will simply run once, throwing on errors.
+
 ### Testing
 
 #### Localnet Mock
