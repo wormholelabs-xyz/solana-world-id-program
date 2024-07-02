@@ -71,7 +71,13 @@ anchor test --detach -- --no-default-features --features testnet
 and
 
 ```bash
-NETWORK=testnet SOLANA_RPC_URL="http://127.0.0.1:8899" WALLET="../tests/keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json" npm start
+NETWORK=testnet MOCK=true SOLANA_RPC_URL="http://127.0.0.1:8899" WALLET="../tests/keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json" npm start
+```
+
+#### Wormhole Testnet / Solana Devnet
+
+```bash
+NETWORK=testnet WALLET=~/.config/solana/your-key.json QUERY_API_KEY=your-wormhole-query-api-key npm start
 ```
 
 ## SolanaWorldID Program
@@ -113,11 +119,27 @@ anchor test
 #### Wormhole Testnet / Solana Devnet
 
 ```bash
-anchor build -- --no-default-features --features testnet
+anchor build --verifiable -- --no-default-features --features testnet
 ```
 
 #### Mainnet
 
 ```bash
-anchor build
+anchor build --verifiable
+```
+
+### Deploying
+
+#### Wormhole Testnet / Solana Devnet
+
+```bash
+anchor deploy --provider.cluster devnet --provider.wallet ~/.config/solana/your-key.json
+NETWORK=testnet WALLET=~/.config/solana/your-key.json npx tsx app/init.ts
+```
+
+#### Mainnet
+
+```bash
+anchor deploy --provider.cluster mainnet --provider.wallet ~/.config/solana/your-key.json
+NETWORK=mainnet WALLET=~/.config/solana/your-key.json npx tsx app/init.ts
 ```
