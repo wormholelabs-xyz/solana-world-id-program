@@ -7,6 +7,9 @@ pub use clean_up_root::*;
 mod initialize;
 pub use initialize::*;
 
+mod verify_groth16_proof;
+pub use verify_groth16_proof::*;
+
 mod verify_query_signatures;
 pub use verify_query_signatures::*;
 

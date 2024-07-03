@@ -2,6 +2,8 @@
 
 This is an example of using Wormhole Queries to bridge the [World ID](https://worldcoin.org/world-id) state root from Ethereum to Solana.
 
+This program relies on the availability of the [alt_bn128_pairing syscall](https://github.com/solana-labs/solana/pull/27961) which, as of 2024-07-03, is [feature gated](https://github.com/solana-labs/solana/issues/28909) [pending Mainnet Beta activation](https://github.com/anza-xyz/agave/wiki/Feature-Gate-Activation-Schedule#pending-mainnet-beta-activation). It _has_ been enabled on Devnet and Testnet though.
+
 ## Objective
 
 Enable cross-chain World ID verification so that protocols can verify their users’ identities on Solana. This is accomplished in two parts:
@@ -147,3 +149,23 @@ NETWORK=testnet WALLET=~/.config/solana/your-key.json npx tsx app/init.ts
 anchor deploy --provider.cluster mainnet --provider.wallet ~/.config/solana/your-key.json
 NETWORK=mainnet WALLET=~/.config/solana/your-key.json npx tsx app/init.ts
 ```
+
+### Upgrading
+
+```
+anchor upgrade --provider.cluster <network> --provider.wallet ~/.config/solana/your-key.json --program-id <PROGRAM_ID> target/deploy/solana_world_id_program.so
+```
+
+If you get an error like this
+
+```
+Error: Deploying program failed: RPC response error -32002: Transaction simulation failed: Error processing Instruction 0: account data too small for instruction [3 log messages]
+```
+
+Don't fret! Just extend the program size.
+
+```
+solana program -u <network> -k ~/.config/solana/w7-testnet.json extend <PROGRAM_ID> <ADDITIONAL_BYTES>
+```
+
+You can view the current program size with `solana program -u <network> show <PROGRAM_ID>`.

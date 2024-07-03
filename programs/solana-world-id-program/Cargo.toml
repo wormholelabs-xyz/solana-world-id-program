@@ -24,3 +24,4 @@ cfg-if = "1.0"
 wormhole-solana-consts = {version = "0.3.0-alpha.1"}
 wormhole-solana-utils = {version = "0.3.0-alpha.1"}
 wormhole-query-sdk = { git = "https://github.com/wormholelabs-xyz/wormhole-query-sdk-rust", version = "0.0.1", rev = "0f34cb470f4e3137b53aa91adcbb0c7def280925" }
+groth16-solana = "0.0.3"
