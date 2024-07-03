@@ -1,41 +1,36 @@
+import {
+  appIdActionToExternalNullifierHash,
+  hashToField,
+} from "../tests/helpers/utils/hashing";
 import { getEnv } from "./env";
 
 const { program } = getEnv();
 (async () => {
-  const rootHash = [
-    1, 232, 211, 66, 186, 128, 220, 155, 171, 105, 57, 233, 154, 24, 141, 198,
-    20, 192, 185, 43, 9, 185, 105, 58, 77, 217, 217, 103, 123, 189, 27, 245,
-  ];
+  // This is the default anvil wallet
+  const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+  const signalHash = hashToField(signal);
+  // This is an example appId and action created via https://developer.worldcoin.org
+  const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+  const action = "testing";
+  const externalNullifierHash = appIdActionToExternalNullifierHash(
+    appId,
+    action
+  );
+  // This is an example ISuccessResult from IDKitWidget's onSuccess callback
+  const result = {
+    proof:
+      "0x15f5b2def7184b6a31edcee5eadb09333866d351591a6d87c827f7ba53fd64f301c8fbf45fb08e184aeeabcd4aadcaf7080b96a023ecd651c26f984002c004b20d94f647bbbc2a266afcd24471362bd80975927faf52fa01de1eea8cb69251332d3198cfa094e2910a6023761089830d12f77d9c19086db759251004f4c5e6dc17a93aeac55b42ceb0bf52b3f95111d131839a24afad6814f4d7e46d1216cb6d042ab3f47d465062288135c1a91e567d2b767bfc830e7aa657b0ca196aac88670c040fd0278a548c6e6cefd65cf544fba81b55d40bb1ba8e82a32965ac17de690c60700cf5761fa90c11460cb46f41f66376e1b978f173066398d990f8c21fba",
+    merkle_root:
+      "0x01e8d342ba80dc9bab6939e99a188dc614c0b92b09b9693a4dd9d9677bbd1bf5",
+    nullifier_hash:
+      "0x2aa975196dc1f4f9f57b8195bea9c61331e0012ec25484ed569782c49145721a",
+    verification_level: "orb",
+  };
+  const rootHash = [...Buffer.from(result.merkle_root.substring(2), "hex")];
   const nullifierHash = [
-    42, 169, 117, 25, 109, 193, 244, 249, 245, 123, 129, 149, 190, 169, 198, 19,
-    49, 224, 1, 46, 194, 84, 132, 237, 86, 151, 130, 196, 145, 69, 114, 26,
+    ...Buffer.from(result.nullifier_hash.substring(2), "hex"),
   ];
-  const signalHash = [
-    0, 233, 112, 125, 14, 97, 113, 247, 40, 247, 71, 60, 36, 204, 4, 50, 169,
-    176, 126, 170, 241, 239, 237, 106, 19, 122, 74, 140, 18, 199, 149, 82,
-  ];
-  const externalNullifierHash = [
-    0, 79, 22, 23, 221, 248, 149, 124, 198, 38, 1, 28, 9, 96, 27, 32, 73, 250,
-    34, 236, 169, 120, 151, 194, 76, 24, 139, 67, 42, 11, 105, 85,
-  ];
-  const proof = [
-    23, 226, 56, 246, 176, 75, 26, 170, 56, 170, 69, 206, 37, 148, 247, 146, 65,
-    26, 213, 255, 209, 95, 199, 181, 185, 116, 7, 251, 235, 11, 128, 243, 7,
-    169, 97, 207, 131, 213, 87, 55, 92, 191, 192, 12, 56, 199, 188, 91, 252,
-    122, 105, 80, 2, 15, 221, 160, 183, 114, 59, 65, 36, 41, 124, 29, 16, 232,
-    75, 138, 16, 40, 209, 33, 108, 249, 174, 217, 233, 155, 18, 27, 241, 238,
-    27, 202, 110, 177, 194, 96, 95, 58, 85, 141, 188, 44, 141, 97, 6, 195, 186,
-    203, 59, 215, 245, 121, 57, 177, 19, 193, 99, 221, 48, 223, 232, 236, 103,
-    115, 36, 69, 243, 96, 107, 108, 76, 124, 50, 190, 146, 226, 42, 186, 225,
-    185, 91, 177, 87, 197, 9, 91, 139, 150, 165, 199, 176, 217, 105, 132, 226,
-    76, 206, 202, 161, 114, 35, 72, 181, 68, 162, 51, 88, 147, 1, 91, 32, 81,
-    100, 170, 70, 182, 3, 107, 96, 51, 136, 168, 13, 16, 187, 105, 212, 104, 56,
-    171, 92, 253, 70, 74, 184, 246, 112, 54, 93, 46, 41, 236, 228, 140, 237, 22,
-    134, 140, 134, 78, 51, 4, 89, 42, 80, 24, 188, 32, 143, 168, 246, 216, 224,
-    102, 52, 215, 36, 169, 188, 25, 75, 247, 33, 120, 129, 91, 142, 122, 61, 93,
-    149, 71, 67, 219, 66, 99, 41, 48, 171, 96, 107, 132, 251, 229, 136, 153,
-    232, 185, 140, 131, 176, 110, 121, 16,
-  ];
+  const proof = [...Buffer.from(result.proof.substring(2), "hex")];
   const tx = await program.methods
     .verifyGroth16Proof(
       rootHash,
