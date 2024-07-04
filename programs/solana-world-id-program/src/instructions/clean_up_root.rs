@@ -4,9 +4,6 @@ use anchor_lang::prelude::*;
 #[derive(Accounts)]
 #[instruction(root_hash: [u8; 32], verification_type: [u8; 1])]
 pub struct CleanUpRoot<'info> {
-    #[account(mut)]
-    payer: Signer<'info>,
-
     #[account(
         mut,
         seeds = [

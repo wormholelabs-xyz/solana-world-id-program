@@ -73,3 +73,10 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Successfully updates staleness config
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
+- [x] [verify_groth16_proof](/programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Successfully verifies a valid groth16 proof
+  - [x] Rejects root hash without a corresponding PDA
+  - [x] Rejects root hash instruction argument mismatch
+  - [x] Rejects verification type instruction argument mismatch
+  - [x] Rejects an expired root
+  - [x] Rejects an invalid proof
