@@ -7,9 +7,6 @@ use anchor_lang::prelude::*;
 #[derive(Accounts)]
 #[instruction(root_hash: [u8; 32], verification_type: [u8; 1])]
 pub struct UpdateRootExpiry<'info> {
-    #[account(mut)]
-    payer: Signer<'info>,
-
     #[account(
         mut,
         seeds = [

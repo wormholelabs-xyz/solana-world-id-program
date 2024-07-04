@@ -1,4 +1,4 @@
-// use crate::{error::SolanaWorldIDProgramError, state::Root};
+use crate::{error::SolanaWorldIDProgramError, state::Root};
 use anchor_lang::prelude::*;
 use groth16_solana::groth16::{Groth16Verifier, Groth16Verifyingkey};
 
@@ -82,22 +82,20 @@ pub const VERIFYING_KEY: Groth16Verifyingkey = Groth16Verifyingkey {
 #[derive(Accounts)]
 #[instruction(root_hash: [u8; 32], verification_type: [u8; 1], signal_hash: [u8; 32], nullifier_hash: [u8; 32], external_nullifier_hash: [u8; 32], proof: [u8; 256])]
 pub struct VerifyGroth16Proof<'info> {
-    #[account(mut)]
-    payer: Signer<'info>,
-    // #[account(
-    //     seeds = [
-    //         Root::SEED_PREFIX,
-    //         &root_hash,
-    //         &verification_type,
-    //     ],
-    //     bump = root.bump
-    // )]
-    // root: Account<'info, Root>,
+    #[account(
+        seeds = [
+            Root::SEED_PREFIX,
+            &root_hash,
+            &verification_type,
+        ],
+        bump = root.bump
+    )]
+    root: Account<'info, Root>,
 }
 
 impl<'info> VerifyGroth16Proof<'info> {
     pub fn constraints(
-        _ctx: &Context<Self>,
+        ctx: &Context<Self>,
         root_hash: [u8; 32],
         _verification_type: [u8; 1],
         signal_hash: [u8; 32],
@@ -105,17 +103,17 @@ impl<'info> VerifyGroth16Proof<'info> {
         external_nullifier_hash: [u8; 32],
         proof: [u8; 256],
     ) -> Result<()> {
-        // let root = ctx.accounts.root.clone().into_inner();
+        let root = ctx.accounts.root.clone().into_inner();
 
-        // // Check that the root not has expired.
-        // let current_timestamp = Clock::get()?
-        //     .unix_timestamp
-        //     .try_into()
-        //     .expect("timestamp underflow");
-        // require!(
-        //     root.is_active(&current_timestamp),
-        //     SolanaWorldIDProgramError::RootUnexpired
-        // );
+        // Check that the root not has expired.
+        let current_timestamp = Clock::get()?
+            .unix_timestamp
+            .try_into()
+            .expect("timestamp underflow");
+        require!(
+            root.is_active(&current_timestamp),
+            SolanaWorldIDProgramError::RootExpired
+        );
 
         let proof_a = proof[0..64].try_into().unwrap();
         let proof_b = proof[64..192].try_into().unwrap();
@@ -130,8 +128,10 @@ impl<'info> VerifyGroth16Proof<'info> {
 
         let mut verifier =
             Groth16Verifier::new(&proof_a, &proof_b, &proof_c, &public_inputs, &VERIFYING_KEY)
-                .unwrap();
-        verifier.verify().unwrap();
+                .map_err(|_| SolanaWorldIDProgramError::CreateGroth16VerifierFailed)?;
+        verifier
+            .verify()
+            .map_err(|_| SolanaWorldIDProgramError::Groth16ProofVerificationFailed)?;
 
         Ok(())
     }

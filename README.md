@@ -113,6 +113,7 @@ This is akin to the [World ID State Bridge](https://github.com/worldcoin/world-i
 - [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs) is the second step of the ownership transfer process, signed by either the `pending_owner` (to accept) or the existing `owner` (to cancel).
 - [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs) sets the `root_expiry` field. The `owner` must sign.
 - [set_allowed_update_staleness](programs/solana-world-id-program/src/instructions/admin.rs) sets the `allowed_update_staleness` field. The `owner` must sign.
+- [verify_groth16_proof](programs/solana-world-id-program/src/instructions/verify_groth16_proof.rs) verifies a proof against an active root and inputs. Intended to be called via [CPI](https://www.anchor-lang.com/docs/cross-program-invocations) by on-chain integrators, though it can be called directly as well.
 
 ### Testing
 

@@ -246,6 +246,15 @@ pub enum SolanaWorldIDProgramError {
     #[msg("RootUnexpired")]
     RootUnexpired = 0x3016,
 
+    #[msg("RootExpired")]
+    RootExpired = 0x3017,
+
+    #[msg("CreateGroth16VerifierFailed")]
+    CreateGroth16VerifierFailed = 0x3018,
+
+    #[msg("Groth16ProofVerificationFailed")]
+    Groth16ProofVerificationFailed = 0x3019,
+
     #[msg("InvalidPendingOwner")]
     InvalidPendingOwner = 0x4000,
 }

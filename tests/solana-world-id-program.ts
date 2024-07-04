@@ -12,20 +12,19 @@ import {
   QueryResponse,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import axios from "axios";
+import { BN } from "bn.js";
 import { assert, expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
-import { deriveGuardianSetKey } from "./helpers/guardianSet";
-import { createVerifyQuerySignaturesInstructions } from "./helpers/verifySignature";
-import { deriveRootKey } from "./helpers/root";
-import { deriveLatestRootKey } from "./helpers/latestRoot";
-import { BN } from "bn.js";
 import { deriveConfigKey } from "./helpers/config";
-import { keccak256 } from "@ethersproject/keccak256";
+import { deriveGuardianSetKey } from "./helpers/guardianSet";
+import { deriveLatestRootKey } from "./helpers/latestRoot";
+import { deriveRootKey } from "./helpers/root";
 import {
   appIdActionToExternalNullifierHash,
   hashToField,
 } from "./helpers/utils/hashing";
+import { createVerifyQuerySignaturesInstructions } from "./helpers/verifySignature";
 
 use(chaiAsPromised);
 
@@ -72,6 +71,17 @@ describe("solana-world-id-program", () => {
   const mockGuardianSetIndex = 5;
   const expiredMockGuardianSetIndex = 6;
   const noQuorumMockGuardianSetIndex = 7;
+
+  // This is an example ISuccessResult from IDKitWidget's onSuccess callback
+  const idkitSuccessResult = {
+    proof:
+      "0x1eef0990c59b6985413ba1589afb6a6b673a4723ea3215923850b89c61aceeee2748da443e3fdf161456b05cb82bc2e6f1ace9e67cdaf76732ff9bf31e6b82b724d7c33a4998f4cd2d1c9f2c90a249910be0aa23b882c9756371769d1af1923d0509d6791ff17c3604425a4a113b5103c014c8f724edc649f1417e56b6cdb4422896c0d5492652ebb1e001016431ae457b58361b5b6cbea25565236362f06fae098cf3493c1c299313672ebd85fde41607261491e3cc57dea51ee7951b47020b21b73fceef2b8fb59c6f5f0302dffa36f9ec01319a257f20052b83f2d7a3232c22f5d0600fb036a5b8d2a3d6d92a3c043b665510d97bf9020510b5f9c692a9a5",
+    merkle_root:
+      "0x05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764",
+    nullifier_hash:
+      "0x2aa975196dc1f4f9f57b8195bea9c61331e0012ec25484ed569782c49145721a",
+    verification_level: "orb",
+  };
 
   const next_owner = anchor.web3.Keypair.generate();
   const validMockSignatureSet = anchor.web3.Keypair.generate();
@@ -1772,8 +1782,13 @@ describe("solana-world-id-program", () => {
       const mockEthCallQueryResponse = futureResponse.responses[0]
         .response as EthCallQueryResponse;
       mockEthCallQueryResponse.blockNumber += BigInt(1);
-      const rootHash =
-        "0000000000000000000000000000000000000000000000000000000000000000";
+      // This is the root from Sepolia at block 6243824 when the following test proof was generated
+      // i.e. `05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764` in hex
+      const rootHash = BigInt(
+        "2435687079378363547963954908279976286426984521078105058052473218447824426852"
+      )
+        .toString(16)
+        .padStart(64, "0");
       mockEthCallQueryResponse.results[0] = `0x${rootHash}`;
       const futureResponseBytes = futureResponse.serialize();
       const futureResponseSigs = new QueryProxyMock({}).sign(
@@ -1878,21 +1893,15 @@ describe("solana-world-id-program", () => {
         appId,
         action
       );
-      // This is an example ISuccessResult from IDKitWidget's onSuccess callback
-      const result = {
-        proof:
-          "0x15f5b2def7184b6a31edcee5eadb09333866d351591a6d87c827f7ba53fd64f301c8fbf45fb08e184aeeabcd4aadcaf7080b96a023ecd651c26f984002c004b20d94f647bbbc2a266afcd24471362bd80975927faf52fa01de1eea8cb69251332d3198cfa094e2910a6023761089830d12f77d9c19086db759251004f4c5e6dc17a93aeac55b42ceb0bf52b3f95111d131839a24afad6814f4d7e46d1216cb6d042ab3f47d465062288135c1a91e567d2b767bfc830e7aa657b0ca196aac88670c040fd0278a548c6e6cefd65cf544fba81b55d40bb1ba8e82a32965ac17de690c60700cf5761fa90c11460cb46f41f66376e1b978f173066398d990f8c21fba",
-        merkle_root:
-          "0x01e8d342ba80dc9bab6939e99a188dc614c0b92b09b9693a4dd9d9677bbd1bf5",
-        nullifier_hash:
-          "0x2aa975196dc1f4f9f57b8195bea9c61331e0012ec25484ed569782c49145721a",
-        verification_level: "orb",
-      };
-      const rootHash = [...Buffer.from(result.merkle_root.substring(2), "hex")];
-      const nullifierHash = [
-        ...Buffer.from(result.nullifier_hash.substring(2), "hex"),
+      const rootHash = [
+        ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
       ];
-      const proof = [...Buffer.from(result.proof.substring(2), "hex")];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
       await expect(
         program.methods
           .verifyGroth16Proof(
@@ -1907,4 +1916,277 @@ describe("solana-world-id-program", () => {
       ).to.be.fulfilled;
     }
   );
+
+  it(
+    fmtTest(
+      "verify_groth16_proof",
+      "Rejects root hash without a corresponding PDA"
+    ),
+    async () => {
+      // This is the default anvil wallet
+      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      const signalHash = hashToField(signal);
+      // This is an example appId and action created via https://developer.worldcoin.org
+      const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+      const action = "testing";
+      const externalNullifierHash = appIdActionToExternalNullifierHash(
+        appId,
+        action
+      );
+      const rootHash = [
+        ...Buffer.from(
+          "00" + idkitSuccessResult.merkle_root.substring(4),
+          "hex"
+        ),
+      ];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
+      await expect(
+        program.methods
+          .verifyGroth16Proof(
+            rootHash,
+            [0],
+            signalHash,
+            nullifierHash,
+            externalNullifierHash,
+            proof
+          )
+          .rpc()
+      ).to.be.rejectedWith("AccountNotInitialized");
+    }
+  );
+
+  it(
+    fmtTest(
+      "verify_groth16_proof",
+      "Rejects root hash instruction argument mismatch"
+    ),
+    async () => {
+      // This is the default anvil wallet
+      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      const signalHash = hashToField(signal);
+      // This is an example appId and action created via https://developer.worldcoin.org
+      const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+      const action = "testing";
+      const externalNullifierHash = appIdActionToExternalNullifierHash(
+        appId,
+        action
+      );
+      const badRootHash = [
+        ...Buffer.from(
+          "00" + idkitSuccessResult.merkle_root.substring(4),
+          "hex"
+        ),
+      ];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
+      await expect(
+        program.methods
+          .verifyGroth16Proof(
+            badRootHash,
+            [0],
+            signalHash,
+            nullifierHash,
+            externalNullifierHash,
+            proof
+          )
+          .accountsPartial({
+            root: deriveRootKey(
+              program.programId,
+              Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+              0
+            ),
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(
+    fmtTest(
+      "verify_groth16_proof",
+      "Rejects verification type instruction argument mismatch"
+    ),
+    async () => {
+      // This is the default anvil wallet
+      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      const signalHash = hashToField(signal);
+      // This is an example appId and action created via https://developer.worldcoin.org
+      const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+      const action = "testing";
+      const externalNullifierHash = appIdActionToExternalNullifierHash(
+        appId,
+        action
+      );
+      const rootHash = [
+        ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+      ];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
+      await expect(
+        program.methods
+          .verifyGroth16Proof(
+            rootHash,
+            [1],
+            signalHash,
+            nullifierHash,
+            externalNullifierHash,
+            proof
+          )
+          .accountsPartial({
+            root: deriveRootKey(program.programId, Buffer.from(rootHash), 0),
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
+      );
+    }
+  );
+
+  it(fmtTest("verify_groth16_proof", "Rejects an expired root"), async () => {
+    // This is the default anvil wallet
+    const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+    const signalHash = hashToField(signal);
+    // This is an example appId and action created via https://developer.worldcoin.org
+    const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+    const action = "testing";
+    const externalNullifierHash = appIdActionToExternalNullifierHash(
+      appId,
+      action
+    );
+    const rootHash = [
+      ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+    ];
+    const nullifierHash = [
+      ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+    ];
+    const proof = [
+      ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+    ];
+    // update the expiry config
+    const oneSecond = new BN(1);
+    await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
+      .fulfilled;
+    // expire the root
+    await expect(program.methods.updateRootExpiry(rootHash, [0]).rpc()).to.be
+      .fulfilled;
+    await sleep(1000);
+    await expect(
+      program.methods
+        .verifyGroth16Proof(
+          rootHash,
+          [0],
+          signalHash,
+          nullifierHash,
+          externalNullifierHash,
+          proof
+        )
+        .rpc()
+    ).to.be.rejectedWith("RootExpired");
+    // put things back the way they were
+    const twentyFourHours = new BN(24 * 60 * 60);
+    await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
+      .fulfilled;
+    await expect(program.methods.updateRootExpiry(rootHash, [0]).rpc()).to.be
+      .fulfilled;
+  });
+
+  it(fmtTest("verify_groth16_proof", "Rejects an invalid proof"), async () => {
+    // This is the default anvil wallet
+    const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+    const signalHash = hashToField(signal);
+    const badSignal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92260";
+    const badSignalHash = hashToField(badSignal);
+    // This is an example appId and action created via https://developer.worldcoin.org
+    const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+    const action = "testing";
+    const externalNullifierHash = appIdActionToExternalNullifierHash(
+      appId,
+      action
+    );
+    const badExternalNullifierHash = appIdActionToExternalNullifierHash(
+      appId,
+      "garbage"
+    );
+    const rootHash = [
+      ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+    ];
+    const nullifierHash = [
+      ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+    ];
+    const badNullifierHash = [
+      ...Buffer.from(
+        "00" + idkitSuccessResult.nullifier_hash.substring(4),
+        "hex"
+      ),
+    ];
+    const proof = [
+      ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+    ];
+    const badProof = [
+      ...Buffer.from("00" + idkitSuccessResult.proof.substring(4), "hex"),
+    ];
+    await expect(
+      program.methods
+        .verifyGroth16Proof(
+          rootHash,
+          [0],
+          badSignalHash,
+          nullifierHash,
+          externalNullifierHash,
+          proof
+        )
+        .rpc()
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    await expect(
+      program.methods
+        .verifyGroth16Proof(
+          rootHash,
+          [0],
+          signalHash,
+          badNullifierHash,
+          externalNullifierHash,
+          proof
+        )
+        .rpc()
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    await expect(
+      program.methods
+        .verifyGroth16Proof(
+          rootHash,
+          [0],
+          signalHash,
+          nullifierHash,
+          badExternalNullifierHash,
+          proof
+        )
+        .rpc()
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    await expect(
+      program.methods
+        .verifyGroth16Proof(
+          rootHash,
+          [0],
+          signalHash,
+          nullifierHash,
+          externalNullifierHash,
+          badProof
+        )
+        .rpc()
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+  });
 });
