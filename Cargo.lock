@@ -775,6 +775,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "ethnum"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b90ca2580b73ab6a1f724b76ca11ab632df820fd6040c336200d2c1df7b3c82c"
+
+[[package]]
 name = "feature-probe"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -863,6 +869,12 @@ checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
 dependencies = [
  "unicode-segmentation",
 ]
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hmac"
@@ -1598,6 +1610,22 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 2.0.67",
+]
+
+[[package]]
+name = "solana-world-id-example-program"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "cfg-if",
+ "ethnum",
+ "groth16-solana",
+ "hex",
+ "solana-program",
+ "solana-world-id-program",
+ "wormhole-query-sdk",
+ "wormhole-solana-consts",
+ "wormhole-solana-utils",
 ]
 
 [[package]]

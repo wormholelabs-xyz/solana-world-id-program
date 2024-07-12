@@ -8,6 +8,7 @@ skip-lint = false
 
 [programs.localnet]
 solana_world_id_program = "9QwAWx3TKg4CaTjHNhBefQeNSzEKDe2JDxL46F76tVDv"
+solana_world_id_example_program = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 
 [registry]
 url = "https://api.apr.dev"
@@ -17,7 +18,7 @@ cluster = "Localnet"
 wallet = "tests/keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json"
 
 [scripts]
-test = "npx tsc --noEmit && yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana-world-id-program.ts"
+test = "npx tsc --noEmit && yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana-world-id-program.ts tests/solana-world-id-example-program.ts"
 
 [test]
 upgradeable = true

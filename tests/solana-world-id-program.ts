@@ -26,7 +26,9 @@ import {
 } from "./helpers/utils/hashing";
 import { createVerifyQuerySignaturesInstructions } from "./helpers/verifySignature";
 import { SystemProgram } from "@solana/web3.js";
-
+import fmtTest from "./helpers/fmtTest";
+import verifyQuerySigs from "./helpers/verifyQuerySigs";
+import { PublicKey } from "@solana/web3.js";
 use(chaiAsPromised);
 
 const ETH_RPC_URL = "https://ethereum-rpc.publicnode.com";
@@ -41,9 +43,6 @@ const LATEST_ROOT_SIGNATURE = "0xd7b0fef1";
 const sleep = (ms: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
-
-const fmtTest = (instruction: string, name: string) =>
-  `${instruction.padEnd(30)} ${name}`;
 
 describe("solana-world-id-program", () => {
   // Configure the client to use the local cluster.
@@ -76,13 +75,21 @@ describe("solana-world-id-program", () => {
   // This is an example ISuccessResult from IDKitWidget's onSuccess callback
   const idkitSuccessResult = {
     proof:
-      "0x1eef0990c59b6985413ba1589afb6a6b673a4723ea3215923850b89c61aceeee2748da443e3fdf161456b05cb82bc2e6f1ace9e67cdaf76732ff9bf31e6b82b724d7c33a4998f4cd2d1c9f2c90a249910be0aa23b882c9756371769d1af1923d0509d6791ff17c3604425a4a113b5103c014c8f724edc649f1417e56b6cdb4422896c0d5492652ebb1e001016431ae457b58361b5b6cbea25565236362f06fae098cf3493c1c299313672ebd85fde41607261491e3cc57dea51ee7951b47020b21b73fceef2b8fb59c6f5f0302dffa36f9ec01319a257f20052b83f2d7a3232c22f5d0600fb036a5b8d2a3d6d92a3c043b665510d97bf9020510b5f9c692a9a5",
+      "0x177606b1626d9de53cca760de8907c122dcd7a0a8e36d6714785643b11604a61290b36c88275913ac7a0493e43362eff9e75cfc407e8fb3baab5b70323f29dbe0aa915653679af4671b1abbe0d79d2f08ee30696b336b81321f6d21ef0817c641177998bcd88a114cec8fe64783ba28f3fb1cc7b82e6438a414596ec1d2a606010a45353ded3a594f599b6d4abbde58d6f64e2a1d705cdaa6850400eb58312392d56bba2718764fc9062b92159314937a9683f491e0e77253cd3a1000ce601632383b56798f90d32756497d00aab3ed4520ab743e1718fcd0707435e1cf24bfd23eb1717e04b27c3b9c98d098ab8f876f5a6fa72d2dccc6850f7c98d80d7549a",
     merkle_root:
-      "0x05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764",
+      "0x29e7081a4cb49cd0119c81d766d9ca41cbdfaf3ce21c8ae0963b8d1b15db4d9a",
     nullifier_hash:
       "0x2aa975196dc1f4f9f57b8195bea9c61331e0012ec25484ed569782c49145721a",
     verification_level: "orb",
   };
+
+  const signal = `0x${new PublicKey(
+    "5yNbCZcCHeAxdmMJXcpFgmurEnygaVbCRwZNMMWETdeZ"
+  )
+    .toBuffer()
+    .toString("hex")}`;
+
+  const signalHash = hashToField(signal);
 
   const next_owner = anchor.web3.Keypair.generate();
   const validMockSignatureSet = anchor.web3.Keypair.generate();
@@ -90,36 +97,6 @@ describe("solana-world-id-program", () => {
   let mockEthCallQueryResponse: EthCallQueryResponse = null;
   let rootHash: string = "";
   let rootKey: anchor.web3.PublicKey = null;
-
-  async function verifyQuerySigs(
-    queryBytes: string,
-    querySignatures: string[],
-    signatureSet: anchor.web3.Keypair,
-    wormholeProgramId: anchor.web3.PublicKey = coreBridgeAddress,
-    guardianSetIndex: number = mockGuardianSetIndex
-  ) {
-    const p = anchor.getProvider();
-    const instructions = await createVerifyQuerySignaturesInstructions(
-      p.connection,
-      program,
-      wormholeProgramId,
-      p.publicKey,
-      queryBytes,
-      querySignatures,
-      signatureSet.publicKey,
-      undefined,
-      guardianSetIndex
-    );
-    const unsignedTransactions: anchor.web3.Transaction[] = [];
-    for (let i = 0; i < instructions.length; i += 2) {
-      unsignedTransactions.push(
-        new anchor.web3.Transaction().add(...instructions.slice(i, i + 2))
-      );
-    }
-    for (const tx of unsignedTransactions) {
-      await p.sendAndConfirm(tx, [signatureSet]);
-    }
-  }
 
   async function getCurrentBlockNumber(program: Program<SolanaWorldIdProgram>) {
     const latestRootKey = deriveLatestRootKey(program.programId, 0);
@@ -149,9 +126,12 @@ describe("solana-world-id-program", () => {
     const responseSigs = new QueryProxyMock({}).sign(responseBytes);
     const signatureSet = anchor.web3.Keypair.generate();
     await verifyQuerySigs(
+      program,
       Buffer.from(responseBytes).toString("hex"),
       responseSigs,
-      signatureSet
+      signatureSet,
+      coreBridgeAddress,
+      mockGuardianSetIndex
     );
     return { responseBytes, signatureSet };
   }
@@ -452,6 +432,7 @@ describe("solana-world-id-program", () => {
     async () => {
       await expect(
         verifyQuerySigs(
+          program,
           mockQueryResponse.bytes,
           mockQueryResponse.signatures,
           validMockSignatureSet,
@@ -561,6 +542,7 @@ describe("solana-world-id-program", () => {
       const signatureSet = anchor.web3.Keypair.generate();
       // start the verification with one guardian set
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         signatureSet
@@ -568,6 +550,7 @@ describe("solana-world-id-program", () => {
       // then try to resume it with another
       await expect(
         verifyQuerySigs(
+          program,
           mockQueryResponse.bytes,
           mockQueryResponse.signatures,
           signatureSet,
@@ -584,6 +567,7 @@ describe("solana-world-id-program", () => {
       const signatureSet = anchor.web3.Keypair.generate();
       // start the verification with one message
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         signatureSet
@@ -592,7 +576,12 @@ describe("solana-world-id-program", () => {
       const badBytes = Buffer.from("00" + mockQueryResponse.bytes, "hex");
       const badBytesSigs = new QueryProxyMock({}).sign(badBytes);
       await expect(
-        verifyQuerySigs(badBytes.toString("hex"), badBytesSigs, signatureSet)
+        verifyQuerySigs(
+          program,
+          badBytes.toString("hex"),
+          badBytesSigs,
+          signatureSet
+        )
       ).to.be.rejectedWith("MessageMismatch");
     }
   );
@@ -779,6 +768,7 @@ describe("solana-world-id-program", () => {
     fmtTest("verify_query_signatures", "Successfully verifies mock signatures"),
     async () => {
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         validMockSignatureSet
@@ -799,6 +789,7 @@ describe("solana-world-id-program", () => {
     ),
     async () => {
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         validMockSignatureSet
@@ -907,6 +898,7 @@ describe("solana-world-id-program", () => {
       const badBytesSigs = new QueryProxyMock({}).sign(badBytes);
       const signatureSet = anchor.web3.Keypair.generate();
       await verifyQuerySigs(
+        program,
         badBytes.toString("hex"),
         badBytesSigs,
         signatureSet
@@ -931,6 +923,7 @@ describe("solana-world-id-program", () => {
     async () => {
       const signatureSet = anchor.web3.Keypair.generate();
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         signatureSet,
@@ -957,6 +950,7 @@ describe("solana-world-id-program", () => {
   it(fmtTest("update_root_with_query", "Rejects no quorum"), async () => {
     const signatureSet = anchor.web3.Keypair.generate();
     await verifyQuerySigs(
+      program,
       mockQueryResponse.bytes,
       mockQueryResponse.signatures,
       signatureSet,
@@ -992,6 +986,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1024,6 +1019,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1074,6 +1070,7 @@ describe("solana-world-id-program", () => {
       const rootHash = mockEthCallQueryResponse.results[0].substring(2);
       const signatureSet = anchor.web3.Keypair.generate();
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         signatureSet
@@ -1111,6 +1108,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1147,6 +1145,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1181,6 +1180,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1213,6 +1213,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1245,6 +1246,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1301,6 +1303,7 @@ describe("solana-world-id-program", () => {
       );
       const signatureSet = anchor.web3.Keypair.generate();
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1338,6 +1341,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1372,6 +1376,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -1547,6 +1552,7 @@ describe("solana-world-id-program", () => {
     async () => {
       const signatureSet = anchor.web3.Keypair.generate();
       await verifyQuerySigs(
+        program,
         mockQueryResponse.bytes,
         mockQueryResponse.signatures,
         signatureSet
@@ -1586,6 +1592,7 @@ describe("solana-world-id-program", () => {
         invalidResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(invalidResponseBytes).toString("hex"),
         invalidResponseSigs,
         signatureSet
@@ -2123,19 +2130,14 @@ describe("solana-world-id-program", () => {
       const mockEthCallQueryResponse = futureResponse.responses[0]
         .response as EthCallQueryResponse;
       mockEthCallQueryResponse.blockNumber += BigInt(1);
-      // This is the root from Sepolia at block 6243824 when the following test proof was generated
-      // i.e. `05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764` in hex
-      const rootHash = BigInt(
-        "2435687079378363547963954908279976286426984521078105058052473218447824426852"
-      )
-        .toString(16)
-        .padStart(64, "0");
-      mockEthCallQueryResponse.results[0] = `0x${rootHash}`;
+      const rootHash = idkitSuccessResult.merkle_root.substring(2);
+      mockEthCallQueryResponse.results[0] = idkitSuccessResult.merkle_root;
       const futureResponseBytes = futureResponse.serialize();
       const futureResponseSigs = new QueryProxyMock({}).sign(
         futureResponseBytes
       );
       await verifyQuerySigs(
+        program,
         Buffer.from(futureResponseBytes).toString("hex"),
         futureResponseSigs,
         signatureSet
@@ -2261,9 +2263,6 @@ describe("solana-world-id-program", () => {
       "Successfully verifies a valid groth16 proof"
     ),
     async () => {
-      // This is the default anvil wallet
-      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-      const signalHash = hashToField(signal);
       // This is an example appId and action created via https://developer.worldcoin.org
       const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
       const action = "testing";
@@ -2301,9 +2300,6 @@ describe("solana-world-id-program", () => {
       "Rejects root hash without a corresponding PDA"
     ),
     async () => {
-      // This is the default anvil wallet
-      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-      const signalHash = hashToField(signal);
       // This is an example appId and action created via https://developer.worldcoin.org
       const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
       const action = "testing";
@@ -2344,9 +2340,6 @@ describe("solana-world-id-program", () => {
       "Rejects root hash instruction argument mismatch"
     ),
     async () => {
-      // This is the default anvil wallet
-      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-      const signalHash = hashToField(signal);
       // This is an example appId and action created via https://developer.worldcoin.org
       const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
       const action = "testing";
@@ -2396,9 +2389,6 @@ describe("solana-world-id-program", () => {
       "Rejects verification type instruction argument mismatch"
     ),
     async () => {
-      // This is the default anvil wallet
-      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-      const signalHash = hashToField(signal);
       // This is an example appId and action created via https://developer.worldcoin.org
       const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
       const action = "testing";
@@ -2436,9 +2426,6 @@ describe("solana-world-id-program", () => {
   );
 
   it(fmtTest("verify_groth16_proof", "Rejects an expired root"), async () => {
-    // This is the default anvil wallet
-    const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-    const signalHash = hashToField(signal);
     // This is an example appId and action created via https://developer.worldcoin.org
     const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
     const action = "testing";
@@ -2459,6 +2446,7 @@ describe("solana-world-id-program", () => {
     const oneSecond = new BN(1);
     await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
       .fulfilled;
+
     // expire the root
     await expect(program.methods.updateRootExpiry(rootHash, [0]).rpc()).to.be
       .fulfilled;
@@ -2484,9 +2472,6 @@ describe("solana-world-id-program", () => {
   });
 
   it(fmtTest("verify_groth16_proof", "Rejects an invalid proof"), async () => {
-    // This is the default anvil wallet
-    const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-    const signalHash = hashToField(signal);
     const badSignal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92260";
     const badSignalHash = hashToField(badSignal);
     // This is an example appId and action created via https://developer.worldcoin.org
