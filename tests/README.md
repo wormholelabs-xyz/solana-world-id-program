@@ -8,25 +8,26 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects without deployer as signer
   - [x] Rejects incorrect program_data
   - [x] Rejects duplicate initialization
-- [x] [verify_query_signatures](/programs/solana-world-id-program/src/instructions/verify_query_signatures.rs)
-  - [x] Successfully verifies mock signatures
-  - [x] Rejects guardian set account not owned by the core bridge
-  - [x] Rejects sysvar account mismatch
-  - [x] Rejects signer indices instruction argument mismatch
-  - [x] Rejects guardian set mismatch
-  - [x] Rejects message mismatch
-  - [x] Rejects invalid guardian key recovery
+- [x] [post_signatures](/programs/solana-world-id-program/src/instructions/post_signatures.rs)
+  - [x] Successfully posts signatures
+  - [x] Successfully appends signatures
+  - [x] Rejects append by non-initial payer
 - [x] [update_root_with_query](/programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
   - [x] Successfully verifies and updates subsequent root
   - [x] Rejects valid root which already exists
+  - [x] Rejects guardian set account not owned by the core bridge
   - [x] Rejects guardian set account mismatch
   - [x] Rejects refund recipient account mismatch
   - [x] Rejects root hash instruction argument mismatch
   - [x] Rejects expired guardian set
   - [x] Rejects no quorum
-  - [x] Rejects invalid message hash
+  - [x] Rejects out of order guardian signatures (InvalidGuardianIndex)
+  - [x] Rejects duplicate guardian signatures (InvalidGuardianIndex)
+  - [x] Rejects guardian index out of bounds (InvalidGuardianIndex)
+  - [x] Rejects invalid signature (InvalidSignature)
+  - [x] Rejects invalid message hash (InvalidGuardianKeyRecovery)
   - [x] Rejects un-parse-able response
   - [x] Rejects invalid number of requests
   - [x] Rejects invalid request chain id
@@ -47,6 +48,10 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects verification type instruction argument mismatch
   - [x] Rejects refund recipient account mismatch
   - [x] Rejects active root clean up
+- [x] [close_signatures](/programs/solana-world-id-program/src/instructions/close_signatures.rs)
+  - [x] Successfully closes signature accounts
+  - [x] Rejects refund recipient account mismatch
+  - [x] Rejects without refund recipient as signer
 - [x] [update_root_expiry](/programs/solana-world-id-program/src/instructions/update_root_expiry.rs)
   - [x] Successfully updates root expiry
   - [x] Rejects root hash instruction argument mismatch

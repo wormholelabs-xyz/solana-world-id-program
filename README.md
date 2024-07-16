@@ -105,9 +105,10 @@ This is akin to the [World ID State Bridge](https://github.com/worldcoin/world-i
 ### Instructions
 
 - [initialize](programs/solana-world-id-program/src/instructions/initialize.rs) sets the initial config and creates the LatestRoot account. It must be signed by the deployer.
-- [verify_query_signatures](programs/solana-world-id-program/src/instructions/verify_query_signatures.rs) verifies the preceding secp256k1 instructions successfully verified query signatures for the provided guardian set.
-- [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs) with a Query response and `QuerySignatureSet` with quorum of an active `WormholeGuardianSet`, verifies and updates the `latestRoot` from the World ID Identity Manager contract on Ethereum.
+- [post_signatures](programs/solana-world-id-program/src/instructions/post_signatures.rs) posts unverified guardian signatures for verification during `update_root_with_query`.
+- [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs) with a Query response and `GuardianSignatures` account, verifies the signatures against an active guardian set and updates the `latestRoot` from the World ID Identity Manager contract on Ethereum.
 - [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs) closes a `Root` account which has expired, reimbursing the rent to the initial payer.
+- [close_signatures](programs/solana-world-id-program/src/instructions/close_signatures.rs) allows the initial payer to close a `GuardianSignatures` account in case the query was invalid.
 - [update_root_expiry](programs/solana-world-id-program/src/instructions/update_root_expiry.rs) updates a `Root`'s expiry if the `Config`'s `root_expiry` field has changed since it was initially calculated.
 - [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs) is the first of a two-step ownership transfer process which sets the `pending_owner` and locks the ability to upgrade.
 - [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs) is the second step of the ownership transfer process, signed by either the `pending_owner` (to accept) or the existing `owner` (to cancel).
