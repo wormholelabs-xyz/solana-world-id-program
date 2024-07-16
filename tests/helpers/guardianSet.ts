@@ -1,7 +1,8 @@
 // modified from https://github.com/wormhole-foundation/wormhole/blob/main/sdk/js/src/solana/wormhole/accounts/guardianSet.ts
 import * as anchor from "@coral-xyz/anchor";
-import { ETHEREUM_KEY_LENGTH } from "./secp256k1";
 import { getAccountData } from "./utils/account";
+
+export const ETHEREUM_KEY_LENGTH = 20;
 
 export function deriveGuardianSetKey(
   wormholeProgramId: anchor.web3.PublicKey,

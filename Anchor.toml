@@ -123,3 +123,8 @@ filename = "tests/accounts/core_bridge_mainnet/guardian_set_6_mock_expired.json"
 [[test.validator.account]]
 address = "6YLGQQEweF82hbPSWCSeJqifWyT8Pm4QXa3mWSLwjYSh"
 filename = "tests/accounts/core_bridge_mainnet/guardian_set_7_mock_no_quorum.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 8 (mock two guardians)
+[[test.validator.account]]
+address = "4qbQUXRTngFAQceLECdtWVYMFKbiiPtZqPRuZJmb2fX5"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_8_mock_two_guardians.json"

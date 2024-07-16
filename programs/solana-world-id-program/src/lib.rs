@@ -17,19 +17,21 @@ pub mod solana_world_id_program {
         instructions::initialize(ctx, args)
     }
 
-    pub fn verify_query_signatures(
-        ctx: Context<VerifyQuerySignatures>,
-        signer_indices: [i8; 19],
+    pub fn post_signatures(
+        ctx: Context<PostSignatures>,
+        guardian_signatures: Vec<[u8; 66]>,
+        total_signatures: u8,
     ) -> Result<()> {
-        instructions::verify_query_signatures(ctx, signer_indices)
+        instructions::post_signatures(ctx, guardian_signatures, total_signatures)
     }
 
     pub fn update_root_with_query(
         ctx: Context<UpdateRootWithQuery>,
         bytes: Vec<u8>,
         root_hash: [u8; 32],
+        guardian_set_index: u32,
     ) -> Result<()> {
-        instructions::update_root_with_query(ctx, bytes, root_hash)
+        instructions::update_root_with_query(ctx, bytes, root_hash, guardian_set_index)
     }
 
     pub fn clean_up_root(
@@ -38,6 +40,10 @@ pub mod solana_world_id_program {
         verification_type: [u8; 1],
     ) -> Result<()> {
         instructions::clean_up_root(ctx, root_hash, verification_type)
+    }
+
+    pub fn close_signatures(ctx: Context<CloseSignatures>) -> Result<()> {
+        instructions::close_signatures(ctx)
     }
 
     pub fn update_root_expiry(

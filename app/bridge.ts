@@ -11,7 +11,6 @@ import {
 import axios from "axios";
 import { deriveGuardianSetKey } from "../tests/helpers/guardianSet";
 import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
-import { createVerifyQuerySignaturesInstructions } from "../tests/helpers/verifySignature";
 import { getEnv } from "./env";
 
 const {
@@ -106,33 +105,24 @@ async function queryEthLatestRoot(
   ).data;
 }
 
-async function verifyQuerySigs(
-  queryBytes: string,
+// TODO: PR to @wormhole-foundation/wormhole-query-sdk
+function signaturesToSolanaArray(signatures: string[]) {
+  return signatures.map((s) => [
+    ...Buffer.from(s.substring(130, 132), "hex"),
+    ...Buffer.from(s.substring(0, 130), "hex"),
+  ]);
+}
+
+async function postQuerySigs(
   querySignatures: string[],
-  signatureSet: web3.Keypair,
-  wormholeProgramId: web3.PublicKey = coreBridgeAddress,
-  guardianSetIndex: number | undefined = mockGuardianSetIndex
+  signatureKeypair: web3.Keypair
 ) {
-  const instructions = await createVerifyQuerySignaturesInstructions(
-    provider.connection,
-    program,
-    wormholeProgramId,
-    provider.wallet.publicKey,
-    queryBytes,
-    querySignatures,
-    signatureSet.publicKey,
-    undefined,
-    guardianSetIndex
-  );
-  const unsignedTransactions: web3.Transaction[] = [];
-  for (let i = 0; i < instructions.length; i += 2) {
-    unsignedTransactions.push(
-      new web3.Transaction().add(...instructions.slice(i, i + 2))
-    );
-  }
-  for (const tx of unsignedTransactions) {
-    await provider.sendAndConfirm(tx, [signatureSet]);
-  }
+  const signatureData = signaturesToSolanaArray(querySignatures);
+  await program.methods
+    .postSignatures(signatureData, signatureData.length)
+    .accounts({ guardianSignatures: signatureKeypair.publicKey })
+    .signers([signatureKeypair])
+    .rpc();
 }
 
 async function syncRoot() {
@@ -152,22 +142,20 @@ async function syncRoot() {
     if (newRootHash === ethRoot.hash) {
       console.log("Query successful! Updating...");
       const signatureSet = web3.Keypair.generate();
-      await verifyQuerySigs(
-        queryResponse.bytes,
-        queryResponse.signatures,
-        signatureSet
-      );
+      await postQuerySigs(queryResponse.signatures, signatureSet);
       const tx = await program.methods
-        .updateRootWithQuery(Buffer.from(queryResponse.bytes, "hex"), [
-          ...Buffer.from(newRootHash, "hex"),
-        ])
+        .updateRootWithQuery(
+          Buffer.from(queryResponse.bytes, "hex"),
+          [...Buffer.from(newRootHash, "hex")],
+          mockGuardianSetIndex
+        )
         .accountsPartial({
           guardianSet: deriveGuardianSetKey(
             coreBridgeAddress,
             mockGuardianSetIndex
           ),
-          signatureSet: signatureSet.publicKey,
-        })
+          guardianSignatures: signatureSet.publicKey,
+        }) // TODO: add setComputeUnitLimit for mainnet
         .rpc();
       console.log(`Successfully updated root on Solana: ${tx}`);
     } else {
