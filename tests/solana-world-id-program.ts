@@ -142,7 +142,7 @@ describe("solana-world-id-program", () => {
         })
         .rpc()
     ).to.be.rejectedWith(
-      "AnchorError caused by account: deployer. Error Code: ConstraintRaw"
+      "AnchorError caused by account: deployer. Error Code: ConstraintRaw."
     );
   });
 
@@ -190,7 +190,7 @@ describe("solana-world-id-program", () => {
         })
         .rpc()
     ).to.be.rejectedWith(
-      "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
+      "AnchorError caused by account: program_data. Error Code: ConstraintSeeds."
     );
   });
 
@@ -324,7 +324,7 @@ describe("solana-world-id-program", () => {
           2,
           nextOwnersProgram
         )
-      ).to.be.rejectedWith("WriteAuthorityMismatch");
+      ).to.be.rejectedWith("WriteAuthorityMismatch.");
     }
   );
 
@@ -424,7 +424,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: validMockSignatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("RootHashMismatch");
+      ).to.be.rejectedWith("RootHashMismatch.");
     }
   );
 
@@ -446,7 +446,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: validMockSignatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidGuardianKeyRecovery");
+      ).to.be.rejectedWith("InvalidGuardianKeyRecovery.");
     }
   );
 
@@ -472,7 +472,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("FailedToParseResponse");
+      ).to.be.rejectedWith("FailedToParseResponse.");
     }
   );
 
@@ -496,7 +496,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("GuardianSetExpired");
+      ).to.be.rejectedWith("GuardianSetExpired.");
     }
   );
 
@@ -518,7 +518,7 @@ describe("solana-world-id-program", () => {
           guardianSignatures: signatureSet.publicKey,
         })
         .rpc()
-    ).to.be.rejectedWith("NoQuorum");
+    ).to.be.rejectedWith("NoQuorum.");
   });
 
   it(
@@ -572,7 +572,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: invalidSignatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidGuardianIndex");
+      ).to.be.rejectedWith("InvalidGuardianIndexNonIncreasing.");
     }
   );
 
@@ -599,7 +599,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidGuardianIndex");
+      ).to.be.rejectedWith("InvalidGuardianIndexNonIncreasing.");
     }
   );
 
@@ -608,7 +608,7 @@ describe("solana-world-id-program", () => {
     async () => {
       const signatureSet = anchor.web3.Keypair.generate();
       await postQuerySigs(
-        new Array(2).fill(mockQueryResponse.signatures[0]),
+        [mockQueryResponse.signatures[0].substring(0, 130) + "01"],
         signatureSet
       );
       await expect(
@@ -626,7 +626,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidGuardianIndex");
+      ).to.be.rejectedWith("InvalidGuardianIndexOutOfRange.");
     }
   );
 
@@ -659,7 +659,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidSignature");
+      ).to.be.rejectedWith("InvalidSignature.");
     }
   );
 
@@ -691,7 +691,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidNumberOfRequests");
+      ).to.be.rejectedWith("InvalidNumberOfRequests.");
     }
   );
 
@@ -721,7 +721,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidRequestChainId");
+      ).to.be.rejectedWith("InvalidRequestChainId.");
     }
   );
 
@@ -769,7 +769,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidRequestType");
+      ).to.be.rejectedWith("InvalidRequestType.");
     }
   );
 
@@ -804,7 +804,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidRequestCallDataLength");
+      ).to.be.rejectedWith("InvalidRequestCallDataLength.");
     }
   );
 
@@ -838,7 +838,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidRequestContract");
+      ).to.be.rejectedWith("InvalidRequestContract.");
     }
   );
 
@@ -870,7 +870,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidRequestSignature");
+      ).to.be.rejectedWith("InvalidRequestSignature.");
     }
   );
 
@@ -900,7 +900,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidNumberOfResponses");
+      ).to.be.rejectedWith("InvalidNumberOfResponses.");
     }
   );
 
@@ -930,7 +930,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidResponseChainId");
+      ).to.be.rejectedWith("InvalidResponseChainId.");
     }
   );
 
@@ -984,7 +984,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidResponseType");
+      ).to.be.rejectedWith("InvalidResponseType.");
     }
   );
 
@@ -1019,7 +1019,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidResponseResultsLength");
+      ).to.be.rejectedWith("InvalidResponseResultsLength.");
     }
   );
 
@@ -1051,7 +1051,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("InvalidResponseResultLength");
+      ).to.be.rejectedWith("InvalidResponseResultLength.");
     }
   );
 
@@ -1092,7 +1092,7 @@ describe("solana-world-id-program", () => {
             guardianSignatures: validMockSignatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("StaleBlockTime");
+      ).to.be.rejectedWith("StaleBlockTime.");
     }
   );
 
@@ -1267,14 +1267,14 @@ describe("solana-world-id-program", () => {
             guardianSignatures: signatureSet.publicKey,
           })
           .rpc()
-      ).to.be.rejectedWith("StaleBlockNum");
+      ).to.be.rejectedWith("StaleBlockNum.");
     }
   );
 
   it(fmtTest("clean_up_root", "Rejects active root clean up"), async () => {
     await expect(
       program.methods.cleanUpRoot([...Buffer.from(rootHash, "hex")], [0]).rpc()
-    ).to.be.rejectedWith("RootUnexpired");
+    ).to.be.rejectedWith("RootUnexpired.");
   });
 
   it(
@@ -1284,7 +1284,7 @@ describe("solana-world-id-program", () => {
         program.methods
           .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
           .rpc()
-      ).to.be.rejectedWith("NoopExpiryUpdate");
+      ).to.be.rejectedWith("NoopExpiryUpdate.");
     }
   );
 
@@ -1442,7 +1442,7 @@ describe("solana-world-id-program", () => {
     await expect(
       program.methods.setRootExpiry(new BN(1)).rpc()
     ).to.be.rejectedWith(
-      "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+      "AnchorError caused by account: config. Error Code: ConstraintHasOne."
     );
   });
 
@@ -1472,7 +1472,7 @@ describe("solana-world-id-program", () => {
       await expect(
         program.methods.setAllowedUpdateStaleness(new BN(1)).rpc()
       ).to.be.rejectedWith(
-        "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+        "AnchorError caused by account: config. Error Code: ConstraintHasOne."
       );
     }
   );
@@ -1513,7 +1513,7 @@ describe("solana-world-id-program", () => {
           })
           .rpc()
       ).to.be.rejectedWith(
-        "AnchorError caused by account: config. Error Code: ConstraintHasOne"
+        "AnchorError caused by account: config. Error Code: ConstraintHasOne."
       );
     }
   );
@@ -1563,7 +1563,7 @@ describe("solana-world-id-program", () => {
           })
           .rpc()
       ).to.be.rejectedWith(
-        "AnchorError caused by account: config. Error Code: InvalidPendingOwner"
+        "AnchorError caused by account: config. Error Code: InvalidPendingOwner."
       );
     }
   );
@@ -1611,7 +1611,7 @@ describe("solana-world-id-program", () => {
           })
           .rpc()
       ).to.be.rejectedWith(
-        "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
+        "AnchorError caused by account: program_data. Error Code: ConstraintSeeds."
       );
     }
   );
@@ -1630,7 +1630,7 @@ describe("solana-world-id-program", () => {
         })
         .rpc()
     ).to.be.rejectedWith(
-      "AnchorError caused by account: program_data. Error Code: ConstraintSeeds"
+      "AnchorError caused by account: program_data. Error Code: ConstraintSeeds."
     );
   });
 
@@ -1932,7 +1932,7 @@ describe("solana-world-id-program", () => {
             proof
           )
           .rpc()
-      ).to.be.rejectedWith("AccountNotInitialized");
+      ).to.be.rejectedWith("AccountNotInitialized.");
     }
   );
 
@@ -2072,7 +2072,7 @@ describe("solana-world-id-program", () => {
           proof
         )
         .rpc()
-    ).to.be.rejectedWith("RootExpired");
+    ).to.be.rejectedWith("RootExpired.");
     // put things back the way they were
     const twentyFourHours = new BN(24 * 60 * 60);
     await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
@@ -2127,7 +2127,7 @@ describe("solana-world-id-program", () => {
           proof
         )
         .rpc()
-    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed.");
     await expect(
       program.methods
         .verifyGroth16Proof(
@@ -2139,7 +2139,7 @@ describe("solana-world-id-program", () => {
           proof
         )
         .rpc()
-    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed.");
     await expect(
       program.methods
         .verifyGroth16Proof(
@@ -2151,7 +2151,7 @@ describe("solana-world-id-program", () => {
           proof
         )
         .rpc()
-    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed.");
     await expect(
       program.methods
         .verifyGroth16Proof(
@@ -2163,7 +2163,7 @@ describe("solana-world-id-program", () => {
           badProof
         )
         .rpc()
-    ).to.be.rejectedWith("Groth16ProofVerificationFailed");
+    ).to.be.rejectedWith("Groth16ProofVerificationFailed.");
   });
 
   it(

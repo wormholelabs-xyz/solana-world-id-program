@@ -154,14 +154,14 @@ impl<'info> UpdateRootWithQuery<'info> {
             if let Some(last_index) = last_guardian_index {
                 require!(
                     index > last_index,
-                    SolanaWorldIDProgramError::InvalidGuardianIndex
+                    SolanaWorldIDProgramError::InvalidGuardianIndexNonIncreasing
                 );
             }
 
             // Does this guardian index exist in this guardian set?
             let guardian_pubkey = guardian_keys
                 .get(index)
-                .ok_or_else(|| error!(SolanaWorldIDProgramError::InvalidGuardianIndex))?;
+                .ok_or_else(|| error!(SolanaWorldIDProgramError::InvalidGuardianIndexOutOfRange))?;
 
             // Now verify that the signature agrees with the expected Guardian's pubkey.
             verify_guardian_signature(&sig, guardian_pubkey, digest.as_ref())?;
