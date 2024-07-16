@@ -45,6 +45,12 @@ cfg_if::cfg_if! {
 // web3.eth.abi.encodeFunctionSignature("latestRoot()");
 pub const LATEST_ROOT_SIGNATURE: [u8; 4] = [0xd7, 0xb0, 0xfe, 0xf1];
 
+#[test]
+fn test_latest_root_signature() {
+    let hash = solana_program::keccak::hashv(&[b"latestRoot()"]).to_bytes();
+    assert_eq!(LATEST_ROOT_SIGNATURE, hash[0..4]);
+}
+
 #[derive(Accounts)]
 #[instruction(bytes: Vec<u8>, root_hash: [u8; 32], guardian_set_index: u32)]
 pub struct UpdateRootWithQuery<'info> {
