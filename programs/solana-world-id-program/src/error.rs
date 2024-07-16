@@ -1,260 +1,99 @@
-//! Errors that may arise when interacting with the Core Bridge Program.
+//! Errors that may arise when interacting with the Solana World ID Program.
 
 use anchor_lang::prelude::error_code;
 
-/// Errors relevant to Core Bridge's malfunction.
-///
-/// * \>= 0x0    -- General program related.
-/// * \>= 0x10   -- General Core Bridge.
-/// * \>= 0x20   -- General Core Bridge Governance.
-/// * \>= 0x100  -- Legacy Post Message.
-/// * \>= 0x200  -- Legacy Post VAA.
-/// * \>= 0x300  -- Legacy Set Message Fee.
-/// * \>= 0x400  -- Legacy Transfer Fees.
-/// * \>= 0x500  -- Legacy Upgrade Contract.
-/// * \>= 0x600  -- Legacy Guardian Set Update.
-/// * \>= 0x700  -- Legacy Verify Signatures.
-/// * \>= 0x800  -- Legacy Post Message Unreliable.
-/// * \>= 0x1000 -- Core Bridge Anchor Instruction.
-/// * \>= 0x2000 -- Core Bridge SDK.
-/// * \>= 0x3000 -- Query Response SDK.
-/// * \>= 0x4000 -- Admin Instructions.
+/// * \>= 0x100  -- Root Management.
+/// * \>= 0x200  -- Proof Verification.
+/// * \>= 0x1000 -- Admin Instructions.
 ///
 /// NOTE: All of these error codes when triggered are offset by `ERROR_CODE_OFFSET` (6000). So for
-/// example, `U64Overflow` will return as 6006.
+/// example, `InvalidMessageHash` will return as 6100.
 #[error_code]
 pub enum SolanaWorldIDProgramError {
-    #[msg("InvalidInstructionArgument")]
-    InvalidInstructionArgument = 0x2,
-
-    #[msg("AccountNotZeroed")]
-    AccountNotZeroed = 0x3,
-
-    #[msg("InvalidDataConversion")]
-    InvalidDataConversion = 0x4,
-
-    #[msg("U64Overflow")]
-    U64Overflow = 0x6,
-
-    #[msg("InvalidComputeSize")]
-    InvalidComputeSize = 0x8,
-
-    #[msg("InvalidChain")]
-    InvalidChain = 0x10,
-
-    #[msg("InvalidGovernanceEmitter")]
-    InvalidGovernanceEmitter = 0x20,
-
-    #[msg("InvalidGovernanceAction")]
-    InvalidGovernanceAction = 0x22,
-
-    #[msg("LatestGuardianSetRequired")]
-    LatestGuardianSetRequired = 0x24,
-
-    #[msg("GovernanceForAnotherChain")]
-    GovernanceForAnotherChain = 0x26,
-
-    #[msg("InvalidGovernanceVaa")]
-    InvalidGovernanceVaa = 0x28,
-
-    #[msg("InsufficientFees")]
-    InsufficientFees = 0x100,
-
-    #[msg("EmitterMismatch")]
-    EmitterMismatch = 0x102,
-
-    #[msg("NotReadyForPublishing")]
-    NotReadyForPublishing = 0x104,
-
-    #[msg("InvalidPreparedMessage")]
-    InvalidPreparedMessage = 0x106,
-
-    #[msg("ExecutableEmitter")]
-    ExecutableEmitter = 0x108,
-
-    #[msg("LegacyEmitter")]
-    LegacyEmitter = 0x10a,
-
-    #[msg("InvalidSignatureSet")]
-    InvalidSignatureSet = 0x200,
-
-    #[msg("InvalidMessageHash")]
-    InvalidMessageHash = 0x202,
-
-    #[msg("NoQuorum")]
-    NoQuorum,
-
-    #[msg("MessageMismatch")]
-    MessageMismatch = 0x204,
-
-    #[msg("NotEnoughLamports")]
-    NotEnoughLamports = 0x400,
-
-    #[msg("InvalidFeeRecipient")]
-    InvalidFeeRecipient = 0x402,
-
-    #[msg("ImplementationMismatch")]
-    ImplementationMismatch = 0x500,
-
-    #[msg("InvalidGuardianSetIndex")]
-    InvalidGuardianSetIndex = 0x600,
-
-    #[msg("GuardianSetMismatch")]
-    GuardianSetMismatch = 0x700,
-
-    #[msg("InstructionAtWrongIndex")]
-    InstructionAtWrongIndex = 0x702,
-
-    #[msg("EmptySigVerifyInstruction")]
-    EmptySigVerifyInstruction = 0x703,
-
-    #[msg("InvalidSigVerifyInstruction")]
-    InvalidSigVerifyInstruction = 0x704,
+    #[msg("WriteAuthorityMismatch")]
+    WriteAuthorityMismatch = 0x100,
 
     #[msg("GuardianSetExpired")]
-    GuardianSetExpired = 0x706,
+    GuardianSetExpired = 0x101,
 
-    #[msg("InvalidGuardianKeyRecovery")]
-    InvalidGuardianKeyRecovery = 0x708,
+    #[msg("InvalidMessageHash")]
+    InvalidMessageHash = 0x102,
 
-    #[msg("SignerIndicesMismatch")]
-    SignerIndicesMismatch = 0x70a,
+    #[msg("NoQuorum")]
+    NoQuorum = 0x103,
 
-    #[msg("PayloadSizeMismatch")]
-    PayloadSizeMismatch = 0x800,
+    #[msg("InvalidGuardianIndexNonIncreasing")]
+    InvalidGuardianIndexNonIncreasing = 0x104,
 
-    #[msg("ZeroGuardians")]
-    ZeroGuardians = 0x1010,
-
-    #[msg("GuardianZeroAddress")]
-    GuardianZeroAddress = 0x1020,
-
-    #[msg("DuplicateGuardianAddress")]
-    DuplicateGuardianAddress = 0x1030,
-
-    #[msg("MessageAlreadyPublished")]
-    MessageAlreadyPublished = 0x1040,
-
-    #[msg("VaaWritingDisallowed")]
-    VaaWritingDisallowed = 0x1050,
-
-    #[msg("VaaAlreadyVerified")]
-    VaaAlreadyVerified = 0x1060,
-
-    #[msg("InvalidGuardianIndex")]
-    InvalidGuardianIndex = 0x1070,
+    #[msg("InvalidGuardianIndexOutOfRange")]
+    InvalidGuardianIndexOutOfRange = 0x105,
 
     #[msg("InvalidSignature")]
-    InvalidSignature = 0x1080,
+    InvalidSignature = 0x106,
 
-    #[msg("UnverifiedVaa")]
-    UnverifiedVaa = 0x10a0,
-
-    #[msg("VaaStillProcessing")]
-    VaaStillProcessing = 0x10a2,
-
-    #[msg("InWritingStatus")]
-    InWritingStatus = 0x10a4,
-
-    #[msg("NotInWritingStatus")]
-    NotInWritingStatus = 0x10a6,
-
-    #[msg("InvalidMessageStatus")]
-    InvalidMessageStatus = 0x10a8,
-
-    #[msg("HashNotComputed")]
-    HashNotComputed = 0x10aa,
-
-    #[msg("InvalidVaaVersion")]
-    InvalidVaaVersion = 0x10ac,
-
-    #[msg("InvalidCreatedAccountSize")]
-    InvalidCreatedAccountSize = 0x10ae,
-
-    #[msg("DataOverflow")]
-    DataOverflow = 0x10b0,
-
-    #[msg("ExceedsMaxPayloadSize (30KB)")]
-    ExceedsMaxPayloadSize = 0x10b2,
-
-    #[msg("CannotParseVaa")]
-    CannotParseVaa = 0x10b4,
-
-    #[msg("EmitterAuthorityMismatch")]
-    EmitterAuthorityMismatch = 0x10b6,
-
-    #[msg("InvalidProgramEmitter")]
-    InvalidProgramEmitter = 0x10b8,
-
-    #[msg("WriteAuthorityMismatch")]
-    WriteAuthorityMismatch = 0x10ba,
-
-    #[msg("PostedVaaPayloadTooLarge")]
-    PostedVaaPayloadTooLarge = 0x10bc,
-
-    #[msg("ExecutableDisallowed")]
-    ExecutableDisallowed = 0x10be,
+    #[msg("InvalidGuardianKeyRecovery")]
+    InvalidGuardianKeyRecovery = 0x107,
 
     #[msg("FailedToParseResponse")]
-    FailedToParseResponse = 0x3000,
+    FailedToParseResponse = 0x110,
 
     #[msg("InvalidNumberOfRequests")]
-    InvalidNumberOfRequests = 0x3001,
+    InvalidNumberOfRequests = 0x111,
 
     #[msg("InvalidRequestChainId")]
-    InvalidRequestChainId = 0x3002,
+    InvalidRequestChainId = 0x112,
 
     #[msg("InvalidRequestType")]
-    InvalidRequestType = 0x3003,
+    InvalidRequestType = 0x113,
 
     #[msg("InvalidRequestCallDataLength")]
-    InvalidRequestCallDataLength = 0x3004,
+    InvalidRequestCallDataLength = 0x114,
 
     #[msg("InvalidRequestContract")]
-    InvalidRequestContract = 0x3005,
+    InvalidRequestContract = 0x115,
 
     #[msg("InvalidRequestSignature")]
-    InvalidRequestSignature = 0x3006,
+    InvalidRequestSignature = 0x116,
 
     #[msg("InvalidNumberOfResponses")]
-    InvalidNumberOfResponses = 0x3007,
+    InvalidNumberOfResponses = 0x117,
 
     #[msg("InvalidResponseChainId")]
-    InvalidResponseChainId = 0x3008,
+    InvalidResponseChainId = 0x118,
 
     #[msg("StaleBlockNum")]
-    StaleBlockNum = 0x3009,
+    StaleBlockNum = 0x119,
 
     #[msg("StaleBlockTime")]
-    StaleBlockTime = 0x3010,
+    StaleBlockTime = 0x120,
 
     #[msg("InvalidResponseType")]
-    InvalidResponseType = 0x3011,
+    InvalidResponseType = 0x121,
 
     #[msg("InvalidResponseResultsLength")]
-    InvalidResponseResultsLength = 0x3012,
+    InvalidResponseResultsLength = 0x122,
 
     #[msg("InvalidResponseResultLength")]
-    InvalidResponseResultLength = 0x3013,
+    InvalidResponseResultLength = 0x123,
 
     #[msg("RootHashMismatch")]
-    RootHashMismatch = 0x3014,
+    RootHashMismatch = 0x124,
 
     #[msg("NoopExpiryUpdate")]
-    NoopExpiryUpdate = 0x3015,
+    NoopExpiryUpdate = 0x125,
 
     #[msg("RootUnexpired")]
-    RootUnexpired = 0x3016,
+    RootUnexpired = 0x126,
 
     #[msg("RootExpired")]
-    RootExpired = 0x3017,
+    RootExpired = 0x200,
 
     #[msg("CreateGroth16VerifierFailed")]
-    CreateGroth16VerifierFailed = 0x3018,
+    CreateGroth16VerifierFailed = 0x201,
 
     #[msg("Groth16ProofVerificationFailed")]
-    Groth16ProofVerificationFailed = 0x3019,
+    Groth16ProofVerificationFailed = 0x202,
 
     #[msg("InvalidPendingOwner")]
-    InvalidPendingOwner = 0x4000,
+    InvalidPendingOwner = 0x1000,
 }
