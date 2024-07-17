@@ -8,14 +8,13 @@ pub struct GuardianSignatures {
     /// Used for reimbursements upon cleanup.
     pub refund_recipient: Pubkey,
 
-    /// Verification success per guardian.
+    /// Unverified guardian signatures.
     pub guardian_signatures: Vec<[u8; 66]>,
 }
 
 impl GuardianSignatures {
     pub(crate) fn compute_size(num_guardians: usize) -> usize {
-        8 // discriminator
-        + 32 // refund_recipient
+        32 // refund_recipient
         + 4 + num_guardians * 66 // signatures
     }
 

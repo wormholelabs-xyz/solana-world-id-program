@@ -8,17 +8,26 @@ pub struct PostSignatures<'info> {
     #[account(mut)]
     payer: Signer<'info>,
 
-    /// Stores signatures for later use by verify_query
     #[account(
         init_if_needed,
         payer = payer,
-        space = GuardianSignatures::compute_size(usize::from(total_signatures))
+        space = 8 + GuardianSignatures::compute_size(usize::from(total_signatures))
     )]
     guardian_signatures: Account<'info, GuardianSignatures>,
 
     system_program: Program<'info, System>,
 }
 
+/// Creates or appends to a GuardianSignatures account for subsequent use by update_root_with_query.
+/// This is necessary as the Wormhole query response (220 bytes)
+/// and 13 guardian signatures (a quorum of the current 19 mainnet guardians, 66 bytes each)
+/// alongside the required accounts is larger than the transaction size limit on Solana (1232 bytes).
+///
+/// This instruction allows for the initial payer to append additional signatures to the account by calling the instruction again.
+/// This may be necessary if a quorum of signatures from the current guardian set grows larger than can fit into a single transaction.
+///
+/// The GuardianSignatures account can be closed by anyone with a successful update_root_with_query instruction
+/// or by the initial payer via close_signatures, either of which will refund the initial payer.
 pub fn post_signatures(
     ctx: Context<PostSignatures>,
     mut guardian_signatures: Vec<[u8; 66]>,
