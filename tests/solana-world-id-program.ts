@@ -24,6 +24,7 @@ import {
   appIdActionToExternalNullifierHash,
   hashToField,
 } from "./helpers/utils/hashing";
+import { signaturesToSolanaArray } from "./helpers/utils/signaturesToSolanaArray";
 
 use(chaiAsPromised);
 
@@ -42,14 +43,6 @@ const sleep = (ms: number): Promise<void> => {
 
 const fmtTest = (instruction: string, name: string) =>
   `${instruction.padEnd(30)} ${name}`;
-
-// TODO: PR to @wormhole-foundation/wormhole-query-sdk
-function signaturesToSolanaArray(signatures: string[]) {
-  return signatures.map((s) => [
-    ...Buffer.from(s.substring(130, 132), "hex"),
-    ...Buffer.from(s.substring(0, 130), "hex"),
-  ]);
-}
 
 describe("solana-world-id-program", () => {
   // Configure the client to use the local cluster.

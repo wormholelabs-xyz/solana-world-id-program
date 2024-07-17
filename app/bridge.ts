@@ -12,6 +12,7 @@ import axios from "axios";
 import { deriveGuardianSetKey } from "../tests/helpers/guardianSet";
 import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
 import { getEnv } from "./env";
+import { signaturesToSolanaArray } from "../tests/helpers/utils/signaturesToSolanaArray";
 
 const {
   MOCK,
@@ -105,26 +106,6 @@ async function queryEthLatestRoot(
   ).data;
 }
 
-// TODO: PR to @wormhole-foundation/wormhole-query-sdk
-function signaturesToSolanaArray(signatures: string[]) {
-  return signatures.map((s) => [
-    ...Buffer.from(s.substring(130, 132), "hex"),
-    ...Buffer.from(s.substring(0, 130), "hex"),
-  ]);
-}
-
-async function postQuerySigs(
-  querySignatures: string[],
-  signatureKeypair: web3.Keypair
-) {
-  const signatureData = signaturesToSolanaArray(querySignatures);
-  await program.methods
-    .postSignatures(signatureData, signatureData.length)
-    .accounts({ guardianSignatures: signatureKeypair.publicKey })
-    .signers([signatureKeypair])
-    .rpc();
-}
-
 async function syncRoot() {
   const ethRoot = await getLatestEthereumRoot();
   const solRoot = await getLatestSolanaRoot();
@@ -142,7 +123,12 @@ async function syncRoot() {
     if (newRootHash === ethRoot.hash) {
       console.log("Query successful! Updating...");
       const signatureSet = web3.Keypair.generate();
-      await postQuerySigs(queryResponse.signatures, signatureSet);
+      const signatureData = signaturesToSolanaArray(queryResponse.signatures);
+      await program.methods
+        .postSignatures(signatureData, signatureData.length)
+        .accounts({ guardianSignatures: signatureSet.publicKey })
+        .signers([signatureSet])
+        .rpc();
       const tx = await program.methods
         .updateRootWithQuery(
           Buffer.from(queryResponse.bytes, "hex"),
