@@ -9,8 +9,8 @@ import "dotenv/config";
 import idl from "../target/idl/solana_world_id_program.json";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 
-export function getEnv() {
-  const NETWORK =
+export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
+  const NETWORK: "localnet" | "testnet" | "mainnet" =
     process.env.NETWORK === "localnet"
       ? "localnet"
       : process.env.NETWORK === "testnet"
@@ -23,7 +23,7 @@ export function getEnv() {
       ? "https://testnet.query.wormhole.com/v1/query"
       : "https://query.wormhole.com/v1/query";
   const QUERY_API_KEY = process.env.QUERY_API_KEY;
-  if (!MOCK && !QUERY_API_KEY) {
+  if (needsQueryApiKeyOrMock && !MOCK && !QUERY_API_KEY) {
     throw new Error("QUERY_API_KEY is required when MOCK is not set");
   }
   const SLEEP = parseInt(process.env.SLEEP || "0") * 1000;
