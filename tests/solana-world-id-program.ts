@@ -1202,6 +1202,14 @@ describe("solana-world-id-program", () => {
         root.refundRecipient.equals(anchor.getProvider().publicKey),
         "refundRecipient does not match"
       );
+      assert(
+        Buffer.from(root.root).equals(Buffer.from(rootHash, "hex")),
+        "root does not match"
+      );
+      assert(
+        Buffer.from(root.verificationType).equals(Buffer.from("00", "hex")),
+        "verificationType does not match"
+      );
       const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
       assert(
         Buffer.from(latestRoot.readBlockHash).toString("hex") ===
@@ -1223,6 +1231,12 @@ describe("solana-world-id-program", () => {
       assert(
         Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
         "root does not match"
+      );
+      assert(
+        Buffer.from(latestRoot.verificationType).equals(
+          Buffer.from("00", "hex")
+        ),
+        "verificationType does not match"
       );
     }
   );
@@ -1780,6 +1794,14 @@ describe("solana-world-id-program", () => {
         root.refundRecipient.equals(anchor.getProvider().publicKey),
         "refundRecipient does not match"
       );
+      assert(
+        Buffer.from(root.root).equals(Buffer.from(rootHash, "hex")),
+        "root does not match"
+      );
+      assert(
+        Buffer.from(root.verificationType).equals(Buffer.from("00", "hex")),
+        "verificationType does not match"
+      );
       const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
       assert(
         Buffer.from(latestRoot.readBlockHash).toString("hex") ===
@@ -1801,6 +1823,12 @@ describe("solana-world-id-program", () => {
       assert(
         Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
         "root does not match"
+      );
+      assert(
+        Buffer.from(latestRoot.verificationType).equals(
+          Buffer.from("00", "hex")
+        ),
+        "verificationType does not match"
       );
     }
   );
