@@ -1304,7 +1304,16 @@ describe("solana-world-id-program", () => {
 
   it(fmtTest("clean_up_root", "Rejects active root clean up"), async () => {
     await expect(
-      program.methods.cleanUpRoot([...Buffer.from(rootHash, "hex")], [0]).rpc()
+      program.methods
+        .cleanUpRoot()
+        .accounts({
+          root: deriveRootKey(
+            program.programId,
+            Buffer.from(rootHash, "hex"),
+            0
+          ),
+        })
+        .rpc()
     ).to.be.rejectedWith("RootUnexpired.");
   });
 
@@ -1321,48 +1330,32 @@ describe("solana-world-id-program", () => {
     }
   );
 
-  it(
-    fmtTest("clean_up_root", "Rejects root hash instruction argument mismatch"),
-    async () => {
-      await expect(
-        program.methods
-          .cleanUpRoot(new Array(32).fill(0), [0])
-          .accountsPartial({
-            root: rootKey,
-          })
-          .rpc()
-      ).to.be.rejectedWith(
-        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
-      );
-    }
-  );
-
-  it(
-    fmtTest(
-      "clean_up_root",
-      "Rejects verification type instruction argument mismatch"
-    ),
-    async () => {
-      await expect(
-        program.methods
-          .cleanUpRoot([...Buffer.from(rootHash, "hex")], [1])
-          .accountsPartial({
-            root: rootKey,
-          })
-          .rpc()
-      ).to.be.rejectedWith(
-        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
-      );
-    }
-  );
+  it(fmtTest("clean_up_root", "Rejects non root account"), async () => {
+    await expect(
+      program.methods
+        .cleanUpRoot()
+        .accountsPartial({
+          root: deriveLatestRootKey(program.programId, 0),
+          refundRecipient: anchor.getProvider().publicKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      "AnchorError caused by account: root. Error Code: AccountDiscriminatorMismatch."
+    );
+  });
 
   it(
     fmtTest("clean_up_root", "Rejects refund recipient account mismatch"),
     async () => {
       await expect(
         program.methods
-          .cleanUpRoot([...Buffer.from(rootHash, "hex")], [0])
+          .cleanUpRoot()
           .accountsPartial({
+            root: deriveRootKey(
+              program.programId,
+              Buffer.from(rootHash, "hex"),
+              0
+            ),
             refundRecipient: next_owner.publicKey,
           })
           .rpc()
@@ -1378,7 +1371,14 @@ describe("solana-world-id-program", () => {
       await sleep(1000);
       await expect(
         program.methods
-          .cleanUpRoot([...Buffer.from(rootHash, "hex")], [0])
+          .cleanUpRoot()
+          .accounts({
+            root: deriveRootKey(
+              program.programId,
+              Buffer.from(rootHash, "hex"),
+              0
+            ),
+          })
           .rpc()
       ).to.be.fulfilled;
       await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(

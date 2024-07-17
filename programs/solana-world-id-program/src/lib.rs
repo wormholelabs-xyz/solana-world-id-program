@@ -34,12 +34,8 @@ pub mod solana_world_id_program {
         instructions::update_root_with_query(ctx, bytes, root_hash, guardian_set_index)
     }
 
-    pub fn clean_up_root(
-        ctx: Context<CleanUpRoot>,
-        root_hash: [u8; 32],
-        verification_type: [u8; 1],
-    ) -> Result<()> {
-        instructions::clean_up_root(ctx, root_hash, verification_type)
+    pub fn clean_up_root(ctx: Context<CleanUpRoot>) -> Result<()> {
+        instructions::clean_up_root(ctx)
     }
 
     pub fn close_signatures(ctx: Context<CloseSignatures>) -> Result<()> {

@@ -5,16 +5,12 @@ use crate::{
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(root_hash: [u8; 32], verification_type: [u8; 1])]
 pub struct CleanUpRoot<'info> {
+    /// This can be any expired root account.
+    /// The PDA check is omitted since this code allows cleaning up any root
+    /// and the discriminator will still be checked.
     #[account(
         mut,
-        seeds = [
-            Root::SEED_PREFIX,
-            &root_hash,
-            &verification_type,
-        ],
-        bump = root.bump,
         has_one = refund_recipient,
         close = refund_recipient
     )]
@@ -26,7 +22,7 @@ pub struct CleanUpRoot<'info> {
     )]
     config: Account<'info, Config>,
 
-    /// CHECK: This account is the refund recipient for the above root
+    /// CHECK: This account is the refund recipient for the above root.
     #[account(address = root.refund_recipient)]
     refund_recipient: AccountInfo<'info>,
 }
@@ -51,10 +47,6 @@ impl<'info> CleanUpRoot<'info> {
 }
 
 #[access_control(CleanUpRoot::constraints(&ctx))]
-pub fn clean_up_root(
-    ctx: Context<CleanUpRoot>,
-    _root_hash: [u8; 32],
-    _verification_type: [u8; 1],
-) -> Result<()> {
+pub fn clean_up_root(ctx: Context<CleanUpRoot>) -> Result<()> {
     Ok(())
 }
