@@ -109,7 +109,6 @@ This is akin to the [World ID State Bridge](https://github.com/worldcoin/world-i
 - [update_root_with_query](programs/solana-world-id-program/src/instructions/update_root_with_query.rs) with a Query response and `GuardianSignatures` account, verifies the signatures against an active guardian set and updates the `latestRoot` from the World ID Identity Manager contract on Ethereum.
 - [clean_up_root](programs/solana-world-id-program/src/instructions/clean_up_root.rs) closes a `Root` account which has expired, reimbursing the rent to the initial payer.
 - [close_signatures](programs/solana-world-id-program/src/instructions/close_signatures.rs) allows the initial payer to close a `GuardianSignatures` account in case the query was invalid.
-- [update_root_expiry](programs/solana-world-id-program/src/instructions/update_root_expiry.rs) updates a `Root`'s expiry if the `Config`'s `root_expiry` field has changed since it was initially calculated.
 - [transfer_ownership](programs/solana-world-id-program/src/instructions/admin.rs) is the first of a two-step ownership transfer process which sets the `pending_owner` and locks the ability to upgrade.
 - [claim_ownership](programs/solana-world-id-program/src/instructions/admin.rs) is the second step of the ownership transfer process, signed by either the `pending_owner` (to accept) or the existing `owner` (to cancel).
 - [set_root_expiry](programs/solana-world-id-program/src/instructions/admin.rs) sets the `root_expiry` field. The `owner` must sign.

@@ -15,6 +15,7 @@ import { getEnv } from "./env";
 import { signaturesToSolanaArray } from "../tests/helpers/utils/signaturesToSolanaArray";
 
 const {
+  NETWORK,
   MOCK,
   QUERY_URL,
   QUERY_API_KEY,
@@ -25,9 +26,8 @@ const {
   LATEST_ROOT_SIGNATURE,
   coreBridgeAddress,
   mockGuardianSetIndex,
-  provider,
   program,
-} = getEnv();
+} = getEnv(true);
 
 async function sleep(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -141,7 +141,16 @@ async function syncRoot() {
             mockGuardianSetIndex
           ),
           guardianSignatures: signatureSet.publicKey,
-        }) // TODO: add setComputeUnitLimit for mainnet
+        })
+        .preInstructions(
+          NETWORK === "mainnet"
+            ? [
+                anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({
+                  units: 420_000,
+                }),
+              ]
+            : []
+        )
         .rpc();
       console.log(`Successfully updated root on Solana: ${tx}`);
     } else {
