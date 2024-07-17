@@ -58,6 +58,7 @@ pub fn initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> 
     });
 
     ctx.accounts.latest_root.bump = ctx.bumps.latest_root;
+    ctx.accounts.latest_root.verification_type = *Root::VERIFICATION_TYPE_QUERY;
 
     Ok(())
 }

@@ -273,6 +273,8 @@ pub fn update_root_with_query(
         read_block_hash: chain_response.block_hash,
         read_block_time: chain_response.block_time,
         refund_recipient: ctx.accounts.payer.key(),
+        root: root_hash,
+        verification_type: *Root::VERIFICATION_TYPE_QUERY,
     });
 
     ctx.accounts.latest_root.read_block_number = chain_response.block_number;
