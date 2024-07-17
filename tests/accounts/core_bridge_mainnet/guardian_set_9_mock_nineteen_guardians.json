@@ -1,0 +1,14 @@
+{
+  "pubkey": "GLWXJeoT37zCViHRsFudGMBYDYo8ddcv6LyvJJw7hSjh",
+  "account": {
+    "lamports": 1141440,
+    "data": [
+      "CQAAABMAAAC++kKdV80Yt/ik2RotqatK8F0PvojX2LMqkQXSKBAOct/+L64HBdMcWAdvVhzGKkcIe1Z8hvmGQm380AC9bpgzSQ+PqHxzOhg80Hamy9KQdLhT/PClx4wbVtFfznoVTm6+nteirzUD29LjdRirBNfOeLYw+YsVt4p4VjLepWCQZIA7HI6ouyx3pgBL0QmigaaYwPW6MfFYWFtB9PM2WeVNMXhEOrdqYOIWkNv7F/f1nwmuPqFkfsJq5JsUBgZgUE9NocIFnhxatoEKw9jhJYvS8ASpTKDNTGj8HAYRgGEOltZFsS9Hrlz0VGsYU4c56Q8u2w2FMOMaIY5yuUgCAqy66wYXjaeIWOXlxHBc3Utmj/475brkhnydXv46Be/GLWDh0Z+utWqAIjzdNHLXkbfTLAWrscwAtjgfoMSSjwxW/BS8ApuICQaQk9cSo/1N+rMZY1l+JGqyn8br7fLTkqUastxcWdCQKgMTKoTf2SCzWj0LpfegY13ymPkDPoX2jWIAAAAA",
+      "base64"
+    ],
+    "owner": "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth",
+    "executable": false,
+    "rentEpoch": 18446744073709551615,
+    "space": 36
+  }
+}

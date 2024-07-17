@@ -72,6 +72,7 @@ describe("solana-world-id-program", () => {
   const expiredMockGuardianSetIndex = 6;
   const noQuorumMockGuardianSetIndex = 7;
   const twoMockGuardianSetIndex = 8;
+  const nineteenMockGuardianSetIndex = 9;
 
   // This is an example ISuccessResult from IDKitWidget's onSuccess callback
   const idkitSuccessResult = {
@@ -1105,6 +1106,54 @@ describe("solana-world-id-program", () => {
         config.allowedUpdateStaleness.eq(fiveMinutes),
         "config does not match"
       );
+    }
+  );
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Successfully verifies a mainnet quorum amount of signatures"
+    ),
+    async () => {
+      const validSignatureSet = anchor.web3.Keypair.generate();
+      const thirteenMockGuardianSignatures = new QueryProxyMock({}, [
+        // https://github.com/wormhole-foundation/wormhole/blob/main/scripts/devnet-consts.json#L320
+        "cfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0",
+        "c3b2e45c422a1602333a64078aeb42637370b0f48fe385f9cfa6ad54a8e0c47e",
+        "9f790d3f08bc4b5cd910d4278f3deb406e57bb5e924906ccd52052bb078ccd47",
+        "b20cc49d6f2c82a5e6519015fc18aa3e562867f85f872c58f1277cfbd2a0c8e4",
+        "eded5a2fdcb5bbbfa5b07f2a91393813420e7ac30a72fc935b6df36f8294b855",
+        "00d39587c3556f289677a837c7f3c0817cb7541ce6e38a243a4bdc761d534c5e",
+        "da534d61a8da77b232f3a2cee55c0125e2b3e33a5cd8247f3fe9e72379445c3b",
+        "cdbabfc2118eb00bc62c88845f3bbd03cb67a9e18a055101588ca9b36387006c",
+        "c83d36423820e7350428dc4abe645cb2904459b7d7128adefe16472fdac397ba",
+        "1cbf4e1388b81c9020500fefc83a7a81f707091bb899074db1bfce4537428112",
+        "17646a6ba14a541957fc7112cc973c0b3f04fce59484a92c09bb45a0b57eb740",
+        "eb94ff04accbfc8195d44b45e7c7da4c6993b2fbbfc4ef166a7675a905df9891",
+        "053a6527124b309d914a47f5257a995e9b0ad17f14659f90ed42af5e6e262b6a",
+      ]).sign(QueryResponse.from(mockQueryResponse.bytes).serialize());
+      await postQuerySigs(thirteenMockGuardianSignatures, validSignatureSet);
+      await expect(
+        program.methods
+          .updateRootWithQuery(
+            Buffer.from(mockQueryResponse.bytes, "hex"),
+            [...Buffer.from(rootHash, "hex")],
+            nineteenMockGuardianSetIndex
+          )
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              nineteenMockGuardianSetIndex
+            ),
+            guardianSignatures: validSignatureSet.publicKey,
+          })
+          .preInstructions([
+            anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({
+              units: 420_000,
+            }),
+          ])
+          .simulate()
+      ).to.be.fulfilled;
     }
   );
 

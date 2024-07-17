@@ -15,6 +15,7 @@ The goal of these tests is to provide positive and negative cases for account an
 - [x] [update_root_with_query](/programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
+  - [x] Successfully verifies a mainnet quorum amount of signatures
   - [x] Successfully verifies and updates subsequent root
   - [x] Rejects valid root which already exists
   - [x] Rejects guardian set account not owned by the core bridge

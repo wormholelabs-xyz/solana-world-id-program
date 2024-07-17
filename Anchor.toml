@@ -128,3 +128,8 @@ filename = "tests/accounts/core_bridge_mainnet/guardian_set_7_mock_no_quorum.jso
 [[test.validator.account]]
 address = "4qbQUXRTngFAQceLECdtWVYMFKbiiPtZqPRuZJmb2fX5"
 filename = "tests/accounts/core_bridge_mainnet/guardian_set_8_mock_two_guardians.json"
+
+### Wormhole Core Bridge (Mainnet) -- Guardian Set 9 (mock nineteen guardians)
+[[test.validator.account]]
+address = "GLWXJeoT37zCViHRsFudGMBYDYo8ddcv6LyvJJw7hSjh"
+filename = "tests/accounts/core_bridge_mainnet/guardian_set_9_mock_nineteen_guardians.json"
