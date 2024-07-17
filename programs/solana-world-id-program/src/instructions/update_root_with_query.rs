@@ -110,7 +110,7 @@ pub struct UpdateRootWithQuery<'info> {
 
 impl<'info> UpdateRootWithQuery<'info> {
     pub fn constraints(ctx: &Context<Self>, bytes: &Vec<u8>) -> Result<()> {
-        let guardian_set = ctx.accounts.guardian_set.clone().into_inner();
+        let guardian_set = &ctx.accounts.guardian_set;
 
         // Check that the guardian set is still active.
         let timestamp = Clock::get()?
@@ -232,7 +232,7 @@ pub fn update_root_with_query(
     }
     .ok_or(SolanaWorldIDProgramError::InvalidResponseType)?;
 
-    let latest_root = ctx.accounts.latest_root.clone().into_inner();
+    let latest_root = &ctx.accounts.latest_root;
     require!(
         chain_response.block_number > latest_root.read_block_number,
         SolanaWorldIDProgramError::StaleBlockNum
@@ -241,7 +241,7 @@ pub fn update_root_with_query(
         .unix_timestamp
         .try_into()
         .expect("timestamp underflow");
-    let config = ctx.accounts.config.clone().into_inner();
+    let config = &ctx.accounts.config;
     let min_block_time = if config.allowed_update_staleness >= current_timestamp {
         0
     } else {
@@ -272,7 +272,6 @@ pub fn update_root_with_query(
         read_block_number: chain_response.block_number,
         read_block_hash: chain_response.block_hash,
         read_block_time: chain_response.block_time,
-        expiry_time: read_block_time_in_secs + config.root_expiry,
         refund_recipient: ctx.accounts.payer.key(),
     });
 

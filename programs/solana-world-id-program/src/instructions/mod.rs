@@ -13,9 +13,6 @@ pub use initialize::*;
 mod post_signatures;
 pub use post_signatures::*;
 
-mod update_root_expiry;
-pub use update_root_expiry::*;
-
 mod update_root_with_query;
 pub use update_root_with_query::*;
 

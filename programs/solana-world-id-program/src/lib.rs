@@ -46,14 +46,6 @@ pub mod solana_world_id_program {
         instructions::close_signatures(ctx)
     }
 
-    pub fn update_root_expiry(
-        ctx: Context<UpdateRootExpiry>,
-        root_hash: [u8; 32],
-        verification_type: [u8; 1],
-    ) -> Result<()> {
-        instructions::update_root_expiry(ctx, root_hash, verification_type)
-    }
-
     pub fn transfer_ownership(ctx: Context<TransferOwnership>) -> Result<()> {
         instructions::transfer_ownership(ctx)
     }

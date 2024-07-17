@@ -1150,17 +1150,6 @@ describe("solana-world-id-program", () => {
         "readBlockNumber does not match"
       );
       assert(
-        root.expiryTime.eq(
-          new BN(
-            (
-              mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
-              BigInt(24 * 60 * 60)
-            ).toString()
-          )
-        ),
-        "expiryTime is incorrect"
-      );
-      assert(
         root.refundRecipient.equals(anchor.getProvider().publicKey),
         "refundRecipient does not match"
       );
@@ -1271,17 +1260,6 @@ describe("solana-world-id-program", () => {
   });
 
   it(
-    fmtTest("update_root_expiry", "Rejects root expiry update noop"),
-    async () => {
-      await expect(
-        program.methods
-          .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
-          .rpc()
-      ).to.be.rejectedWith("NoopExpiryUpdate.");
-    }
-  );
-
-  it(
     fmtTest("set_root_expiry", "Successfully updates expiry config"),
     async () => {
       const oneSecond = new BN(1);
@@ -1291,63 +1269,6 @@ describe("solana-world-id-program", () => {
         deriveConfigKey(program.programId)
       );
       assert(config.rootExpiry.eq(oneSecond), "config does not match");
-    }
-  );
-
-  it(
-    fmtTest(
-      "update_root_expiry",
-      "Rejects root hash instruction argument mismatch"
-    ),
-    async () => {
-      await expect(
-        program.methods
-          .updateRootExpiry(new Array(32).fill(0), [0])
-          .accountsPartial({
-            root: rootKey,
-          })
-          .rpc()
-      ).to.be.rejectedWith(
-        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
-      );
-    }
-  );
-
-  it(
-    fmtTest(
-      "update_root_expiry",
-      "Rejects verification type instruction argument mismatch"
-    ),
-    async () => {
-      await expect(
-        program.methods
-          .updateRootExpiry([...Buffer.from(rootHash, "hex")], [1])
-          .accountsPartial({
-            root: rootKey,
-          })
-          .rpc()
-      ).to.be.rejectedWith(
-        "AnchorError caused by account: root. Error Code: ConstraintSeeds."
-      );
-    }
-  );
-
-  it(
-    fmtTest("update_root_expiry", "Successfully updates root expiry"),
-    async () => {
-      await expect(
-        program.methods
-          .updateRootExpiry([...Buffer.from(rootHash, "hex")], [0])
-          .rpc()
-      ).to.be.fulfilled;
-      const root = await program.account.root.fetch(rootKey);
-      assert(
-        root.readBlockTime
-          .div(new BN(1_000_000))
-          .add(new BN(1))
-          .eq(root.expiryTime),
-        "root not updated correctly"
-      );
     }
   );
 
@@ -1807,17 +1728,6 @@ describe("solana-world-id-program", () => {
         "readBlockNumber does not match"
       );
       assert(
-        root.expiryTime.eq(
-          new BN(
-            (
-              mockEthCallQueryResponse.blockTime / BigInt(1_000_000) +
-              BigInt(24 * 60 * 60)
-            ).toString()
-          )
-        ),
-        "expiryTime is incorrect"
-      );
-      assert(
         root.refundRecipient.equals(anchor.getProvider().publicKey),
         "refundRecipient does not match"
       );
@@ -2050,9 +1960,6 @@ describe("solana-world-id-program", () => {
     const oneSecond = new BN(1);
     await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
       .fulfilled;
-    // expire the root
-    await expect(program.methods.updateRootExpiry(rootHash, [0]).rpc()).to.be
-      .fulfilled;
     await sleep(1000);
     await expect(
       program.methods
@@ -2069,8 +1976,6 @@ describe("solana-world-id-program", () => {
     // put things back the way they were
     const twentyFourHours = new BN(24 * 60 * 60);
     await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
-      .fulfilled;
-    await expect(program.methods.updateRootExpiry(rootHash, [0]).rpc()).to.be
       .fulfilled;
   });
 

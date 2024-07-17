@@ -1,4 +1,7 @@
-use crate::{error::SolanaWorldIDProgramError, state::Root};
+use crate::{
+    error::SolanaWorldIDProgramError,
+    state::{Config, Root},
+};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -17,6 +20,12 @@ pub struct CleanUpRoot<'info> {
     )]
     root: Account<'info, Root>,
 
+    #[account(
+        seeds = [Config::SEED_PREFIX],
+        bump = config.bump
+    )]
+    config: Account<'info, Config>,
+
     /// CHECK: This account is the refund recipient for the above root
     #[account(address = root.refund_recipient)]
     refund_recipient: AccountInfo<'info>,
@@ -24,7 +33,8 @@ pub struct CleanUpRoot<'info> {
 
 impl<'info> CleanUpRoot<'info> {
     pub fn constraints(ctx: &Context<Self>) -> Result<()> {
-        let root = ctx.accounts.root.clone().into_inner();
+        let root = &ctx.accounts.root;
+        let config = &ctx.accounts.config;
 
         // Check that the root has expired.
         let current_timestamp = Clock::get()?
@@ -32,7 +42,7 @@ impl<'info> CleanUpRoot<'info> {
             .try_into()
             .expect("timestamp underflow");
         require!(
-            !root.is_active(&current_timestamp),
+            !root.is_active(&current_timestamp, &config.root_expiry),
             SolanaWorldIDProgramError::RootUnexpired
         );
 

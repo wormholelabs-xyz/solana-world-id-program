@@ -1,4 +1,7 @@
-use crate::{error::SolanaWorldIDProgramError, state::Root};
+use crate::{
+    error::SolanaWorldIDProgramError,
+    state::{Config, Root},
+};
 use anchor_lang::prelude::*;
 use groth16_solana::groth16::{Groth16Verifier, Groth16Verifyingkey};
 
@@ -91,6 +94,12 @@ pub struct VerifyGroth16Proof<'info> {
         bump = root.bump
     )]
     root: Account<'info, Root>,
+
+    #[account(
+        seeds = [Config::SEED_PREFIX],
+        bump = config.bump
+    )]
+    config: Account<'info, Config>,
 }
 
 impl<'info> VerifyGroth16Proof<'info> {
@@ -103,7 +112,8 @@ impl<'info> VerifyGroth16Proof<'info> {
         external_nullifier_hash: [u8; 32],
         proof: [u8; 256],
     ) -> Result<()> {
-        let root = ctx.accounts.root.clone().into_inner();
+        let root = &ctx.accounts.root;
+        let config = &ctx.accounts.config;
 
         // Check that the root not has expired.
         let current_timestamp = Clock::get()?
@@ -111,7 +121,7 @@ impl<'info> VerifyGroth16Proof<'info> {
             .try_into()
             .expect("timestamp underflow");
         require!(
-            root.is_active(&current_timestamp),
+            root.is_active(&current_timestamp, &config.root_expiry),
             SolanaWorldIDProgramError::RootExpired
         );
 
