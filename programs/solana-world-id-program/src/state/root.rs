@@ -10,8 +10,6 @@ pub struct Root {
     pub read_block_hash: [u8; 32],
     /// Block time (in microseconds) from which the root was read.
     pub read_block_time: u64,
-    /// Time (in seconds) after which this root should be considered expired.
-    pub expiry_time: u64,
     /// Payer of this root account, used for reimbursements upon cleanup.
     pub refund_recipient: Pubkey,
 }
@@ -20,7 +18,9 @@ impl Root {
     pub const SEED_PREFIX: &'static [u8] = b"Root";
     pub const VERIFICATION_TYPE_QUERY: &'static [u8] = &[0x00];
 
-    pub fn is_active(&self, timestamp: &u64) -> bool {
-        self.expiry_time == 0 || self.expiry_time >= *timestamp
+    pub fn is_active(&self, timestamp: &u64, config_root_expiry: &u64) -> bool {
+        let read_block_time_in_secs = self.read_block_time / 1_000_000;
+        let expiry_time = read_block_time_in_secs + config_root_expiry;
+        expiry_time == 0 || expiry_time >= *timestamp
     }
 }
