@@ -2,8 +2,6 @@
 
 This is an example of using Wormhole Queries to bridge the [World ID](https://worldcoin.org/world-id) state root from Ethereum to Solana.
 
-This program relies on the availability of the [alt_bn128_pairing syscall](https://github.com/solana-labs/solana/pull/27961) which, as of 2024-07-03, is [feature gated](https://github.com/solana-labs/solana/issues/28909) [pending Mainnet Beta activation](https://github.com/anza-xyz/agave/wiki/Feature-Gate-Activation-Schedule#pending-mainnet-beta-activation). It _has_ been enabled on Devnet and Testnet though.
-
 ## Objective
 
 Enable cross-chain World ID verification so that protocols can verify their users’ identities on Solana. This is accomplished in two parts:
@@ -37,6 +35,8 @@ The Ethereum-to-Solana State Bridge Service is responsible for monitoring the Wo
 3. Submit the Query response to the SolanaWorldID program on Solana.
 
 This is akin to the EVM L2 [State Bridge Service](https://github.com/worldcoin/world-tree/blob/0fb6223eb29b3ad97a5745b0f9e7a3b32234cd50/README.md#state-bridge-service)
+
+![State Bridge Service diagram](./StateBridgeService.drawio.svg)
 
 ### Design
 
@@ -99,8 +99,8 @@ This is akin to the [World ID State Bridge](https://github.com/worldcoin/world-i
 
 - [Config](programs/solana-world-id-program/src/state/config.rs) stores the program configuration. There is only one.
 - [LatestRoot](programs/solana-world-id-program/src/state/latest_root.rs) stores the most recent verified root metadata and hash. There is one per `Root` verification mechanism (e.g. Query with Guardian signatures).
-- [QuerySignatureSet](programs/solana-world-id-program/src/state/query_signature_set.rs) stores the signatures for pending query verification. These are created in service of verifying a root via Queries and closed when that root is verified.
-- [Root](programs/solana-world-id-program/src/state/root.rs) stores the metadata and expiry for a verified root. These can be closed after the root is expired.
+- [GuardianSignatures](programs/solana-world-id-program/src/state/guardian_signatures.rs) stores unverified guardian signatures for subsequent verification. These are created with `post_signatures` in service of verifying a root via Queries and closed when that root is verified with `update_root_with_query` or can be explicitly closed with `close_signatures` by the initial payer.
+- [Root](programs/solana-world-id-program/src/state/root.rs) stores the metadata and expiry for a verified root. These can be closed with `clean_up_root` after the root has expired.
 
 ### Instructions
 
