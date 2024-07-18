@@ -27,6 +27,7 @@ export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
     throw new Error("QUERY_API_KEY is required when MOCK is not set");
   }
   const SLEEP = parseInt(process.env.SLEEP || "0") * 1000;
+  const CLEANUP = parseInt(process.env.CLEANUP || "0") * 1000;
 
   const ETH_RPC_URL =
     process.env.ETH_RPC_URL ||
@@ -85,6 +86,7 @@ export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
     QUERY_URL,
     QUERY_API_KEY,
     SLEEP,
+    CLEANUP,
     ETH_RPC_URL,
     ETH_CHAIN_ID,
     ETH_WORLD_ID_IDENTITY_MANAGER,

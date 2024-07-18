@@ -25,6 +25,6 @@ impl Root {
     pub fn is_active(&self, timestamp: &u64, config_root_expiry: &u64) -> bool {
         let read_block_time_in_secs = self.read_block_time / 1_000_000;
         let expiry_time = read_block_time_in_secs + config_root_expiry;
-        expiry_time == 0 || expiry_time >= *timestamp
+        expiry_time >= *timestamp
     }
 }
