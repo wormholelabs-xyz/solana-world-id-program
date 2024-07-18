@@ -14,6 +14,7 @@ import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
 import { signaturesToSolanaArray } from "../tests/helpers/utils/signaturesToSolanaArray";
 import { cleanUpRoots } from "./cleanup";
 import { getEnv } from "./env";
+import { getWormholeBridgeData } from "../tests/helpers/config";
 
 const {
   NETWORK,
@@ -28,6 +29,7 @@ const {
   LATEST_ROOT_SIGNATURE,
   coreBridgeAddress,
   mockGuardianSetIndex,
+  provider,
   program,
 } = getEnv(true);
 
@@ -81,6 +83,17 @@ async function getLatestSolanaRoot(): Promise<RootHashAndBlockNumber> {
   return { hash, blockNumber };
 }
 
+async function getGuardianSetIndex(): Promise<number> {
+  if (mockGuardianSetIndex !== undefined) {
+    return mockGuardianSetIndex;
+  }
+  const info = await getWormholeBridgeData(
+    provider.connection,
+    coreBridgeAddress
+  );
+  return info.guardianSetIndex;
+}
+
 async function queryEthLatestRoot(
   blockNumber: bigint
 ): Promise<QueryProxyQueryResponse> {
@@ -124,6 +137,7 @@ async function syncRoot() {
     const newRootHash = mockEthCallQueryResponse.results[0].substring(2);
     if (newRootHash === ethRoot.hash) {
       console.log("Query successful! Updating...");
+      const guardianSetIndex = await getGuardianSetIndex();
       const signatureSet = web3.Keypair.generate();
       const signatureData = signaturesToSolanaArray(queryResponse.signatures);
       await program.methods
@@ -135,12 +149,12 @@ async function syncRoot() {
         .updateRootWithQuery(
           Buffer.from(queryResponse.bytes, "hex"),
           [...Buffer.from(newRootHash, "hex")],
-          mockGuardianSetIndex
+          guardianSetIndex
         )
         .accountsPartial({
           guardianSet: deriveGuardianSetKey(
             coreBridgeAddress,
-            mockGuardianSetIndex
+            guardianSetIndex
           ),
           guardianSignatures: signatureSet.publicKey,
         })
