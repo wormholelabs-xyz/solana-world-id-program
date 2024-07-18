@@ -11,8 +11,9 @@ import {
 import axios from "axios";
 import { deriveGuardianSetKey } from "../tests/helpers/guardianSet";
 import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
-import { getEnv } from "./env";
 import { signaturesToSolanaArray } from "../tests/helpers/utils/signaturesToSolanaArray";
+import { cleanUpRoots } from "./cleanup";
+import { getEnv } from "./env";
 
 const {
   NETWORK,
@@ -20,6 +21,7 @@ const {
   QUERY_URL,
   QUERY_API_KEY,
   SLEEP,
+  CLEANUP,
   ETH_RPC_URL,
   ETH_CHAIN_ID,
   ETH_WORLD_ID_IDENTITY_MANAGER,
@@ -163,11 +165,11 @@ async function syncRoot() {
   }
 }
 
-async function runSyncRoot(timeout: number) {
+async function runWithRetry(fn: () => Promise<void>, timeout: number) {
   let retry = 0;
   while (true) {
     try {
-      await syncRoot();
+      await fn();
       retry = 0;
       await sleep(timeout);
     } catch (e) {
@@ -183,7 +185,13 @@ async function runSyncRoot(timeout: number) {
 if (typeof require !== "undefined" && require.main === module) {
   if (SLEEP) {
     console.log("Sleep is set. Running as a service.");
-    runSyncRoot(SLEEP);
+    runWithRetry(syncRoot, SLEEP);
+    if (CLEANUP) {
+      console.log("Cleanup is set. Running intermittent cleanup.");
+      runWithRetry(async () => {
+        await cleanUpRoots(program);
+      }, CLEANUP);
+    }
   } else {
     syncRoot();
   }

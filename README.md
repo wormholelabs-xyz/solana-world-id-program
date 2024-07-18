@@ -40,7 +40,7 @@ This is akin to the EVM L2 [State Bridge Service](https://github.com/worldcoin/w
 
 ### Design
 
-The bridge service provided in `/app` is a TypeScript program designed to be run either in a scheduled lambda / cloud function setting or as a service. If the `SLEEP` environment variable is set, it will run as a service, sleeping for `SLEEP` seconds between calls and will not exit on errors, otherwise it will simply run once, throwing on errors.
+The bridge service provided in `/app` is a TypeScript program designed to be run either in a scheduled lambda / cloud function setting or as a service. If the `SLEEP` environment variable is set, it will run as a service, sleeping for `SLEEP` seconds between calls and will not exit on errors, otherwise it will simply run once, throwing on errors. When running as a service, the `CLEANUP` environment variable may also be set, which works the same as `SLEEP` but for cleaning up expired roots, reclaiming their rent.
 
 ### Testing
 
