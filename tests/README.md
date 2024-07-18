@@ -52,15 +52,15 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Successfully closes signature accounts
   - [x] Rejects refund recipient account mismatch
   - [x] Rejects without refund recipient as signer
-- [ ] [transfer_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
-  - [ ] Successfully initiates ownership transfer (test in devnet)
+- [x] [transfer_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Successfully initiates ownership transfer (tested in devnet [tx](https://explorer.solana.com/tx/326xwyUDtMGVXiTb4GTG8kTSbamcQkyGeArCqLmB3A7B9n8YqgTThHrAcneBRYpuLvWvfF4VzPXHKgkQAqaNNezj?cluster=devnet))
   - [x] Rejects owner account mismatch
   - [x] Rejects without owner as signer
   - [x] Rejects incorrect program_data
-  - [ ] Rejects when authority is already upgrade lock (test in devnet)
-- [ ] [claim_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
-  - [ ] Successfully completes ownership transfer (test in devnet)
-  - [ ] Successfully cancels ownership transfer (test in devnet)
+  - [x] Rejects when authority is already upgrade lock (tested in devnet [tx](https://explorer.solana.com/tx/4oNUTMbWEk2ZgPMDESLjwTpDyvHP9Gd7JmZ4kkzLVHrrX4BV4FzGjQNQy7JJdJogGoa5q3rohJmB3FVeHEoxXnoo?cluster=devnet))
+- [x] [claim_ownership](/programs/solana-world-id-program/src/instructions/admin.rs)
+  - [x] Successfully completes ownership transfer (tested in devnet [tx](https://explorer.solana.com/tx/5gxvcw7R4oZ9ThKUGts3QkW2QW4PNwjoYJFqfxXTV1vtaNBUbxz8wnX7YVHghoPtHUCErUNhT95nu9Pw1fbUTxyZ?cluster=devnet))
+  - [x] Successfully cancels ownership transfer (tested in devnet [tx](https://explorer.solana.com/tx/3wkymUcYBcR8yw5xtmcu1hdSiZCq7cXdSyG7usTgUckag99FirU57H8Kf7Nd5P7zjsdkef48vJRfnyj2ieSQpEJx?cluster=devnet))
   - [x] Rejects when upgrade_lock is not upgrade_authority_address
   - [x] Rejects owner or pending owner account mismatch
   - [x] Rejects without owner or pending owner as signer
