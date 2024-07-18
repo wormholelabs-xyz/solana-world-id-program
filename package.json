@@ -11,7 +11,8 @@
     "@wormhole-foundation/wormhole-query-sdk": "^0.0.12",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
-    "tsx": "^4.16.0"
+    "tsx": "^4.16.0",
+    "winston": "^3.13.1"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

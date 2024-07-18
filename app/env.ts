@@ -6,17 +6,35 @@ import {
   web3,
 } from "@coral-xyz/anchor";
 import "dotenv/config";
+import { createLogger, format, transports } from "winston";
 import idl from "../target/idl/solana_world_id_program.json";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 
 export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
+  const logger = createLogger({
+    level: process.env.LOG_LEVEL || "info",
+    format: format.combine(
+      format.simple(),
+      format.errors({ stack: true }),
+      format.timestamp({
+        format: "YYYY-MM-DD HH:mm:ss.SSS ZZ",
+      }),
+      format.printf((info) => {
+        // log format: [YYYY-MM-DD HH:mm:ss.SSS A ZZ] [level] [source] message
+        const source = info.source || "main";
+        return `[${info.timestamp}] [${info.level}] [${source}] ${info.message}`;
+      })
+    ),
+    transports: [new transports.Console()],
+  });
+  const envLogger = logger.child({ source: "env" });
   const NETWORK: "localnet" | "testnet" | "mainnet" =
     process.env.NETWORK === "localnet"
       ? "localnet"
       : process.env.NETWORK === "testnet"
       ? "testnet"
       : "mainnet";
-  console.log("Network:         ", NETWORK);
+  envLogger.info(`Network:          ${NETWORK}`);
   const MOCK = NETWORK === "localnet" || process.env.MOCK === "true";
   const QUERY_URL =
     NETWORK === "testnet"
@@ -44,7 +62,7 @@ export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
       : "0xf7134CE138832c1456F2a91D64621eE90c2bddEa";
   // web3.eth.abi.encodeFunctionSignature("latestRoot()");
   const LATEST_ROOT_SIGNATURE = "0xd7b0fef1";
-  console.log("Identity Manager:", ETH_WORLD_ID_IDENTITY_MANAGER);
+  envLogger.info(`Identity Manager: ${ETH_WORLD_ID_IDENTITY_MANAGER}`);
 
   const SOLANA_RPC_URL =
     process.env.SOLANA_RPC_URL ||
@@ -71,7 +89,7 @@ export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
       "../tests/keys/pFCBP4bhqdSsrWUVTgqhPsLrfEdChBK17vgFM7TxjxQ.json")
   );
   const wallet = new Wallet(web3.Keypair.fromSecretKey(PAYER_PRIVATE_KEY));
-  console.log("Wallet:          ", wallet.publicKey.toString());
+  envLogger.info(`Wallet:           ${wallet.publicKey.toString()}`);
 
   const provider = new AnchorProvider(connection, wallet);
   setProvider(provider);
@@ -96,5 +114,6 @@ export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
     mockGuardianSetIndex,
     provider,
     program,
+    logger,
   };
 }

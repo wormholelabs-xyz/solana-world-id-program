@@ -2,11 +2,15 @@
 
 import { Program } from "@coral-xyz/anchor";
 import { BN } from "bn.js";
+import { Logger } from "winston";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 import { deriveConfigKey } from "../tests/helpers/config";
 
-export async function cleanUpRoots(program: Program<SolanaWorldIdProgram>) {
-  console.log(`Cleaning up roots...`);
+export async function cleanUpRoots(
+  program: Program<SolanaWorldIdProgram>,
+  logger: Logger
+) {
+  logger.info(`Cleaning up roots...`);
   const config = await program.account.config.fetch(
     deriveConfigKey(program.programId)
   );
@@ -15,15 +19,16 @@ export async function cleanUpRoots(program: Program<SolanaWorldIdProgram>) {
     await program.provider.connection.getBlockTime(slot)
   );
   const roots = await program.account.root.all();
-  console.log(`Found ${roots.length} root(s)`);
+  logger.debug(`Found ${roots.length} root(s)`);
   for (const root of roots) {
     // programs/solana-world-id-program/src/state/root.rs
     const readTimeInSeconds = root.account.readBlockTime.div(new BN(1_000_000));
     const expiry = readTimeInSeconds.add(config.rootExpiry);
     const isActive = expiry.gte(blockTime);
+    const rootHex = Buffer.from(root.account.root).toString("hex");
     if (isActive) {
-      console.log(
-        `Skipping active root account ${root.publicKey.toString()}, expires in ${expiry.sub(
+      logger.debug(
+        `Skipping active root ${rootHex} account ${root.publicKey.toString()}, expires in ${expiry.sub(
           blockTime
         )}s`
       );
@@ -33,11 +38,11 @@ export async function cleanUpRoots(program: Program<SolanaWorldIdProgram>) {
           .cleanUpRoot()
           .accounts({ root: root.publicKey })
           .rpc();
-        console.log(
-          `Cleaned up root account ${root.publicKey.toString()} in tx ${tx}`
+        logger.info(
+          `Cleaned up root ${rootHex} account ${root.publicKey.toString()} in tx ${tx}`
         );
       } catch (e) {
-        console.error(
+        logger.error(
           `Error cleaning up root account ${root.publicKey.toString()}: ${
             e.message
           }`
@@ -45,10 +50,11 @@ export async function cleanUpRoots(program: Program<SolanaWorldIdProgram>) {
       }
     }
   }
+  logger.info(`Done.`);
 }
 
 if (typeof require !== "undefined" && require.main === module) {
   const { getEnv } = require("./env");
-  const { program } = getEnv();
-  cleanUpRoots(program);
+  const { program, logger } = getEnv();
+  cleanUpRoots(program, logger);
 }
