@@ -9,12 +9,13 @@ import {
   QueryResponse,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import axios from "axios";
+import { Logger } from "winston";
+import { getWormholeBridgeData } from "../tests/helpers/config";
 import { deriveGuardianSetKey } from "../tests/helpers/guardianSet";
 import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
 import { signaturesToSolanaArray } from "../tests/helpers/utils/signaturesToSolanaArray";
 import { cleanUpRoots } from "./cleanup";
 import { getEnv } from "./env";
-import { getWormholeBridgeData } from "../tests/helpers/config";
 
 const {
   NETWORK,
@@ -31,6 +32,7 @@ const {
   mockGuardianSetIndex,
   provider,
   program,
+  logger,
 } = getEnv(true);
 
 async function sleep(timeout: number) {
@@ -121,22 +123,22 @@ async function queryEthLatestRoot(
   ).data;
 }
 
-async function syncRoot() {
+async function syncRoot(logger: Logger) {
   const ethRoot = await getLatestEthereumRoot();
   const solRoot = await getLatestSolanaRoot();
-  console.log("Eth root:", ethRoot);
-  console.log("Sol root:", solRoot);
+  logger.info(`Eth root: ${ethRoot.blockNumber.toString()} ${ethRoot.hash}`);
+  logger.info(`Sol root: ${solRoot.blockNumber.toString()} ${solRoot.hash}`);
   if (
     ethRoot.hash !== solRoot.hash &&
     ethRoot.blockNumber > solRoot.blockNumber
   ) {
-    console.log("Eth root is newer, querying...");
+    logger.debug("Eth root is newer, querying...");
     const queryResponse = await queryEthLatestRoot(ethRoot.blockNumber);
     const mockEthCallQueryResponse = QueryResponse.from(queryResponse.bytes)
       .responses[0].response as EthCallQueryResponse;
     const newRootHash = mockEthCallQueryResponse.results[0].substring(2);
     if (newRootHash === ethRoot.hash) {
-      console.log("Query successful! Updating...");
+      logger.debug("Query successful! Updating...");
       const guardianSetIndex = await getGuardianSetIndex();
       const signatureSet = web3.Keypair.generate();
       const signatureData = signaturesToSolanaArray(queryResponse.signatures);
@@ -168,29 +170,33 @@ async function syncRoot() {
             : []
         )
         .rpc();
-      console.log(`Successfully updated root on Solana: ${tx}`);
+      logger.info(`Successfully updated root on Solana: ${tx}`);
     } else {
-      console.log(
+      logger.warn(
         `Queried root mismatch! Ours: ${ethRoot.hash}, Theirs: ${newRootHash}`
       );
     }
   } else {
-    console.log("Roots match, nothing to update.");
+    logger.debug("Roots match, nothing to update.");
   }
 }
 
-async function runWithRetry(fn: () => Promise<void>, timeout: number) {
+async function runWithRetry(
+  fn: (logger: Logger) => Promise<void>,
+  timeout: number,
+  logger: Logger
+) {
   let retry = 0;
   while (true) {
     try {
-      await fn();
+      await fn(logger);
       retry = 0;
       await sleep(timeout);
     } catch (e) {
       retry++;
-      console.error(e);
+      logger.error(e);
       const expoBacko = timeout * 2 ** retry;
-      console.warn(`backing off for ${expoBacko}ms`);
+      logger.warn(`backing off for ${expoBacko}ms`);
       await sleep(expoBacko);
     }
   }
@@ -198,15 +204,19 @@ async function runWithRetry(fn: () => Promise<void>, timeout: number) {
 
 if (typeof require !== "undefined" && require.main === module) {
   if (SLEEP) {
-    console.log("Sleep is set. Running as a service.");
-    runWithRetry(syncRoot, SLEEP);
+    logger.info("Sleep is set. Running as a service.");
+    runWithRetry(syncRoot, SLEEP, logger.child({ source: "sync" }));
     if (CLEANUP) {
-      console.log("Cleanup is set. Running intermittent cleanup.");
-      runWithRetry(async () => {
-        await cleanUpRoots(program);
-      }, CLEANUP);
+      logger.info("Cleanup is set. Running intermittent cleanup.");
+      runWithRetry(
+        async (logger: Logger) => {
+          await cleanUpRoots(program, logger);
+        },
+        CLEANUP,
+        logger.child({ source: "cleanup" })
+      );
     }
   } else {
-    syncRoot();
+    syncRoot(logger);
   }
 }
