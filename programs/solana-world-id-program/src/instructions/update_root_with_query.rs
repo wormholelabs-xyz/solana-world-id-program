@@ -188,8 +188,10 @@ pub fn update_root_with_query(
     root_hash: [u8; 32],
     _guardian_set_index: u32,
 ) -> Result<()> {
+    // Parse the Wormhole QueryResponse.
     let response = QueryResponse::deserialize(&bytes)
         .map_err(|_| SolanaWorldIDProgramError::FailedToParseResponse)?;
+    // Requests can be batched, expect only one request to Ethereum.
     require!(
         response.request.requests.len() == 1,
         SolanaWorldIDProgramError::InvalidNumberOfRequests
@@ -199,11 +201,13 @@ pub fn update_root_with_query(
         request.chain_id == ETH_CHAIN_ID,
         SolanaWorldIDProgramError::InvalidRequestChainId
     );
+    // Ensure this was an EthCall. https://docs.wormhole.com/wormhole/queries/overview#eth_call
     let query = match &request.query {
         ChainSpecificQuery::EthCallQueryRequest(q) => Some(q),
         _ => None,
     }
     .ok_or(SolanaWorldIDProgramError::InvalidRequestType)?;
+    // Ensure there was one call of `latestRoot()` to the World ID Identity Manager contract.
     require!(
         query.call_data.len() == 1,
         SolanaWorldIDProgramError::InvalidRequestCallDataLength
@@ -216,7 +220,7 @@ pub fn update_root_with_query(
         query.call_data[0].data == LATEST_ROOT_SIGNATURE,
         SolanaWorldIDProgramError::InvalidRequestSignature
     );
-
+    // Sanity checks: expect one EthCall response from Ethereum.
     require!(
         response.responses.len() == 1,
         SolanaWorldIDProgramError::InvalidNumberOfResponses
@@ -231,12 +235,14 @@ pub fn update_root_with_query(
         _ => None,
     }
     .ok_or(SolanaWorldIDProgramError::InvalidResponseType)?;
-
+    // Only accept roots from newer blocks.
     let latest_root = &ctx.accounts.latest_root;
     require!(
         chain_response.block_number > latest_root.read_block_number,
         SolanaWorldIDProgramError::StaleBlockNum
     );
+    // Only accept blocks within the allowed update staleness.
+    // This, along with the above check, ensures that Queries cannot be stored for an extended period of time without being submitted.
     let current_timestamp = Clock::get()?
         .unix_timestamp
         .try_into()
@@ -252,14 +258,14 @@ pub fn update_root_with_query(
         read_block_time_in_secs >= min_block_time,
         SolanaWorldIDProgramError::StaleBlockTime
     );
-
+    // Ensure one result matching the root hash used to derive the root account.
     require!(
         chain_response.results.len() == 1,
         SolanaWorldIDProgramError::InvalidResponseResultsLength
     );
     let result = &chain_response.results[0];
     require!(
-        result.len() == 32,
+        result.len() == 32, // A keccak hash is 32 bytes.
         SolanaWorldIDProgramError::InvalidResponseResultLength
     );
     require!(
