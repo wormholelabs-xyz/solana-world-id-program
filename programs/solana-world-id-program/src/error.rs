@@ -7,7 +7,7 @@ use anchor_lang::prelude::error_code;
 /// * \>= 0x1000 -- Admin Instructions.
 ///
 /// NOTE: All of these error codes when triggered are offset by `ERROR_CODE_OFFSET` (6000). So for
-/// example, `InvalidMessageHash` will return as 6100.
+/// example, `WriteAuthorityMismatch` will return as 6256.
 #[error_code]
 pub enum SolanaWorldIDProgramError {
     #[msg("WriteAuthorityMismatch")]
