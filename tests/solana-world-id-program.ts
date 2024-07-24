@@ -10,6 +10,7 @@ import {
   QueryProxyQueryResponse,
   QueryRequest,
   QueryResponse,
+  signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import axios from "axios";
 import { BN } from "bn.js";
@@ -24,7 +25,6 @@ import {
   appIdActionToExternalNullifierHash,
   hashToField,
 } from "./helpers/utils/hashing";
-import { signaturesToSolanaArray } from "./helpers/utils/signaturesToSolanaArray";
 
 use(chaiAsPromised);
 
