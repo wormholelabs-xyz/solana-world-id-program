@@ -7,13 +7,13 @@ import {
   QueryProxyQueryResponse,
   QueryRequest,
   QueryResponse,
+  signaturesToSolanaArray,
 } from "@wormhole-foundation/wormhole-query-sdk";
 import axios from "axios";
 import { Logger } from "winston";
 import { getWormholeBridgeData } from "../tests/helpers/config";
 import { deriveGuardianSetKey } from "../tests/helpers/guardianSet";
 import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
-import { signaturesToSolanaArray } from "../tests/helpers/utils/signaturesToSolanaArray";
 import { cleanUpRoots } from "./cleanup";
 import { getEnv } from "./env";
 
