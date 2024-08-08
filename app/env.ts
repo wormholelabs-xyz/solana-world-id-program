@@ -58,7 +58,7 @@ export function getEnv(needsQueryApiKeyOrMock: boolean = false) {
   // https://etherscan.io/address/0xf7134CE138832c1456F2a91D64621eE90c2bddEa
   const ETH_WORLD_ID_IDENTITY_MANAGER =
     NETWORK === "testnet"
-      ? "0x928a514350A403e2f5e3288C102f6B1CCABeb37C"
+      ? "0xb2ead588f14e69266d1b87936b75325181377076"
       : "0xf7134CE138832c1456F2a91D64621eE90c2bddEa";
   // web3.eth.abi.encodeFunctionSignature("latestRoot()");
   const LATEST_ROOT_SIGNATURE = "0xd7b0fef1";
