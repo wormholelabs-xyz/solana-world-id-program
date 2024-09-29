@@ -47,6 +47,7 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Successfully cleans up an expired root
   - [x] Rejects non root account
   - [x] Rejects refund recipient account mismatch
+  - [x] Rejects latest root clean up
   - [x] Rejects active root clean up
 - [x] [close_signatures](/programs/solana-world-id-program/src/instructions/close_signatures.rs)
   - [x] Successfully closes signature accounts
@@ -75,8 +76,9 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects without owner as signer
 - [x] [verify_groth16_proof](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully verifies a valid groth16 proof
+  - [x] Successfully verifies against an expired, but latest root
   - [x] Rejects root hash without a corresponding PDA
   - [x] Rejects root hash instruction argument mismatch
   - [x] Rejects verification type instruction argument mismatch
-  - [x] Rejects an expired root
+  - [x] Rejects an expired, non-latest root
   - [x] Rejects an invalid proof

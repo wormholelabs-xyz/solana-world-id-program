@@ -12,7 +12,7 @@ pub struct LatestRoot {
     pub read_block_time: u64,
     /// Root hash of the last posted root account.
     pub root: [u8; 32],
-    /// SEED: Verification type. Stored for off-chain convenience.
+    /// SEED: Verification type.
     pub verification_type: [u8; 1],
 }
 

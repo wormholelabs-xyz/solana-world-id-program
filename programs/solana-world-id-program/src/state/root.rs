@@ -12,9 +12,9 @@ pub struct Root {
     pub read_block_time: u64,
     /// Payer of this root account, used for reimbursements upon cleanup.
     pub refund_recipient: Pubkey,
-    /// SEED: Root hash. Stored for off-chain convenience.
+    /// SEED: Root hash.
     pub root: [u8; 32],
-    /// SEED: Verification type. Stored for off-chain convenience.
+    /// SEED: Verification type.
     pub verification_type: [u8; 1],
 }
 
