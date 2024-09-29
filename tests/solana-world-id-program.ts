@@ -1513,6 +1513,27 @@ describe("solana-world-id-program", () => {
   );
 
   it(
+    fmtTest("clean_up_root", "Rejects non-payer refund recipient"),
+    async () => {
+      const otherPayerProgram = programPaidBy(next_owner);
+      await expect(
+        otherPayerProgram.methods
+          .cleanUpRoot()
+          .accountsPartial({
+            root: deriveRootKey(
+              program.programId,
+              Buffer.from(rootHash, "hex"),
+              0
+            ),
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "instruction changed the balance of a read-only account"
+      );
+    }
+  );
+
+  it(
     fmtTest("clean_up_root", "Successfully cleans up an expired root"),
     async () => {
       await sleep(1000);
