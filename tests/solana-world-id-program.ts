@@ -322,6 +322,13 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  it(fmtTest("post_signatures", "Rejects empty signatures"), async () => {
+    const signatureSet = anchor.web3.Keypair.generate();
+    await expect(postQuerySigs([], signatureSet, 2)).to.be.rejectedWith(
+      "EmptyGuardianSignatures."
+    );
+  });
+
   it(
     fmtTest(
       "update_root_with_query",

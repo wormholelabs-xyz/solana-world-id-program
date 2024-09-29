@@ -34,6 +34,9 @@ pub enum SolanaWorldIDProgramError {
     #[msg("InvalidGuardianKeyRecovery")]
     InvalidGuardianKeyRecovery = 0x107,
 
+    #[msg("EmptyGuardianSignatures")]
+    EmptyGuardianSignatures = 0x108,
+
     #[msg("FailedToParseResponse")]
     FailedToParseResponse = 0x110,
 

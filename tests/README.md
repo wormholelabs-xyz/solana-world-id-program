@@ -12,6 +12,7 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Successfully posts signatures
   - [x] Successfully appends signatures
   - [x] Rejects append by non-initial payer
+  - [x] Rejects empty signatures
 - [x] [update_root_with_query](/programs/solana-world-id-program/src/instructions/update_root_with_query.rs)
   - [x] Successfully verifies mock queries and updates root
   - [x] Successfully closed the signature set
