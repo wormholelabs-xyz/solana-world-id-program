@@ -103,7 +103,7 @@ pub struct UpdateRootWithQuery<'info> {
     config: Account<'info, Config>,
 
     /// CHECK: This account is the refund recipient for the above signature_set
-    #[account(address = guardian_signatures.refund_recipient)]
+    #[account(mut, address = guardian_signatures.refund_recipient)]
     refund_recipient: AccountInfo<'info>,
 
     system_program: Program<'info, System>,

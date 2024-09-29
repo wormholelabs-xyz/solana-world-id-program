@@ -7,7 +7,7 @@ pub struct CloseSignatures<'info> {
     #[account(mut, has_one = refund_recipient, close = refund_recipient)]
     guardian_signatures: Account<'info, GuardianSignatures>,
 
-    #[account(address = guardian_signatures.refund_recipient)]
+    #[account(mut, address = guardian_signatures.refund_recipient)]
     refund_recipient: Signer<'info>,
 }
 

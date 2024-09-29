@@ -33,7 +33,7 @@ pub struct CleanUpRoot<'info> {
     config: Account<'info, Config>,
 
     /// CHECK: This account is the refund recipient for the above root.
-    #[account(address = root.refund_recipient)]
+    #[account(mut, address = root.refund_recipient)]
     refund_recipient: AccountInfo<'info>,
 }
 
