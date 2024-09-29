@@ -2216,6 +2216,54 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  it(
+    fmtTest("verify_groth16_proof", "Panics when is_active would overflow"),
+    async () => {
+      // root expiry is only checked when it isn't the latest root
+      // the test above makes that the case
+
+      // set the root expiry config to the max u64
+      await expect(
+        program.methods.setRootExpiry(new BN("ff".repeat(64 / 8), 16)).rpc()
+      ).to.be.fulfilled;
+      // This is the default anvil wallet
+      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      const signalHash = hashToField(signal);
+      // This is an example appId and action created via https://developer.worldcoin.org
+      const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+      const action = "testing";
+      const externalNullifierHash = appIdActionToExternalNullifierHash(
+        appId,
+        action
+      );
+      const rootHash = [
+        ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+      ];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
+      await expect(
+        program.methods
+          .verifyGroth16Proof(
+            rootHash,
+            [0],
+            signalHash,
+            nullifierHash,
+            externalNullifierHash,
+            proof
+          )
+          .rpc()
+      ).to.be.rejectedWith("overflow");
+      // put things back the way they were
+      const twentyFourHours = new BN(24 * 60 * 60);
+      await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
+        .fulfilled;
+    }
+  );
+
   it(fmtTest("verify_groth16_proof", "Rejects an invalid proof"), async () => {
     // This is the default anvil wallet
     const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
