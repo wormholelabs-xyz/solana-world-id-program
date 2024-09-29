@@ -1316,6 +1316,129 @@ describe("solana-world-id-program", () => {
     }
   );
 
+  it(fmtTest("clean_up_root", "Rejects latest root clean up"), async () => {
+    await expect(
+      program.methods
+        .cleanUpRoot()
+        .accounts({
+          root: deriveRootKey(
+            program.programId,
+            Buffer.from(rootHash, "hex"),
+            0
+          ),
+          latestRoot: deriveLatestRootKey(program.programId, 0),
+        })
+        .rpc()
+    ).to.be.rejectedWith("RootIsLatest.");
+  });
+
+  it(
+    fmtTest(
+      "update_root_with_query",
+      "Successfully verifies and updates subsequent root"
+    ),
+    async () => {
+      const signatureSet = anchor.web3.Keypair.generate();
+      const futureResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const mockEthCallQueryResponse = futureResponse.responses[0]
+        .response as EthCallQueryResponse;
+      mockEthCallQueryResponse.blockNumber += BigInt(1);
+      // This is the root from Sepolia at block 6243824 when the following test proof was generated
+      // i.e. `05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764` in hex
+      const rootHash = BigInt(
+        "2435687079378363547963954908279976286426984521078105058052473218447824426852"
+      )
+        .toString(16)
+        .padStart(64, "0");
+      mockEthCallQueryResponse.results[0] = `0x${rootHash}`;
+      const futureResponseBytes = futureResponse.serialize();
+      const futureResponseSigs = new QueryProxyMock({}).sign(
+        futureResponseBytes
+      );
+      await postQuerySigs(futureResponseSigs, signatureSet);
+      const rootKey = deriveRootKey(
+        program.programId,
+        Buffer.from(rootHash, "hex"),
+        0
+      );
+      const latestRootKey = deriveLatestRootKey(program.programId, 0);
+      // await expect(
+      await program.methods
+        .updateRootWithQuery(
+          Buffer.from(futureResponseBytes),
+          [...Buffer.from(rootHash, "hex")],
+          mockGuardianSetIndex
+        )
+        .accountsPartial({
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          guardianSignatures: signatureSet.publicKey,
+        })
+        .rpc();
+      // ).to.be.fulfilled;
+      const root = await program.account.root.fetch(rootKey);
+      assert(
+        Buffer.from(root.readBlockHash).toString("hex") ===
+          mockEthCallQueryResponse.blockHash.substring(2),
+        "readBlockHash does not match"
+      );
+      assert(
+        root.readBlockNumber.eq(
+          new BN(mockEthCallQueryResponse.blockNumber.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        root.readBlockTime.eq(
+          new BN(mockEthCallQueryResponse.blockTime.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        root.refundRecipient.equals(anchor.getProvider().publicKey),
+        "refundRecipient does not match"
+      );
+      assert(
+        Buffer.from(root.root).equals(Buffer.from(rootHash, "hex")),
+        "root does not match"
+      );
+      assert(
+        Buffer.from(root.verificationType).equals(Buffer.from("00", "hex")),
+        "verificationType does not match"
+      );
+      const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
+      assert(
+        Buffer.from(latestRoot.readBlockHash).toString("hex") ===
+          mockEthCallQueryResponse.blockHash.substring(2),
+        "readBlockHash does not match"
+      );
+      assert(
+        latestRoot.readBlockNumber.eq(
+          new BN(mockEthCallQueryResponse.blockNumber.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        latestRoot.readBlockTime.eq(
+          new BN(mockEthCallQueryResponse.blockTime.toString())
+        ),
+        "readBlockNumber does not match"
+      );
+      assert(
+        Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
+        "root does not match"
+      );
+      assert(
+        Buffer.from(latestRoot.verificationType).equals(
+          Buffer.from("00", "hex")
+        ),
+        "verificationType does not match"
+      );
+    }
+  );
+
   it(fmtTest("clean_up_root", "Rejects active root clean up"), async () => {
     await expect(
       program.methods
@@ -1326,6 +1449,7 @@ describe("solana-world-id-program", () => {
             Buffer.from(rootHash, "hex"),
             0
           ),
+          latestRoot: deriveLatestRootKey(program.programId, 0),
         })
         .rpc()
     ).to.be.rejectedWith("RootUnexpired.");
@@ -1350,6 +1474,7 @@ describe("solana-world-id-program", () => {
         .cleanUpRoot()
         .accountsPartial({
           root: deriveLatestRootKey(program.programId, 0),
+          latestRoot: deriveLatestRootKey(program.programId, 0),
           refundRecipient: anchor.getProvider().publicKey,
         })
         .rpc()
@@ -1370,6 +1495,7 @@ describe("solana-world-id-program", () => {
               Buffer.from(rootHash, "hex"),
               0
             ),
+            latestRoot: deriveLatestRootKey(program.programId, 0),
             refundRecipient: next_owner.publicKey,
           })
           .rpc()
@@ -1392,6 +1518,7 @@ describe("solana-world-id-program", () => {
               Buffer.from(rootHash, "hex"),
               0
             ),
+            latestRoot: deriveLatestRootKey(program.programId, 0),
           })
           .rpc()
       ).to.be.fulfilled;
@@ -1728,113 +1855,6 @@ describe("solana-world-id-program", () => {
 
   it(
     fmtTest(
-      "update_root_with_query",
-      "Successfully verifies and updates subsequent root"
-    ),
-    async () => {
-      const signatureSet = anchor.web3.Keypair.generate();
-      const futureResponse = QueryResponse.from(mockQueryResponse.bytes);
-      const mockEthCallQueryResponse = futureResponse.responses[0]
-        .response as EthCallQueryResponse;
-      mockEthCallQueryResponse.blockNumber += BigInt(1);
-      // This is the root from Sepolia at block 6243824 when the following test proof was generated
-      // i.e. `05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764` in hex
-      const rootHash = BigInt(
-        "2435687079378363547963954908279976286426984521078105058052473218447824426852"
-      )
-        .toString(16)
-        .padStart(64, "0");
-      mockEthCallQueryResponse.results[0] = `0x${rootHash}`;
-      const futureResponseBytes = futureResponse.serialize();
-      const futureResponseSigs = new QueryProxyMock({}).sign(
-        futureResponseBytes
-      );
-      await postQuerySigs(futureResponseSigs, signatureSet);
-      const rootKey = deriveRootKey(
-        program.programId,
-        Buffer.from(rootHash, "hex"),
-        0
-      );
-      const latestRootKey = deriveLatestRootKey(program.programId, 0);
-      // await expect(
-      await program.methods
-        .updateRootWithQuery(
-          Buffer.from(futureResponseBytes),
-          [...Buffer.from(rootHash, "hex")],
-          mockGuardianSetIndex
-        )
-        .accountsPartial({
-          guardianSet: deriveGuardianSetKey(
-            coreBridgeAddress,
-            mockGuardianSetIndex
-          ),
-          guardianSignatures: signatureSet.publicKey,
-        })
-        .rpc();
-      // ).to.be.fulfilled;
-      const root = await program.account.root.fetch(rootKey);
-      assert(
-        Buffer.from(root.readBlockHash).toString("hex") ===
-          mockEthCallQueryResponse.blockHash.substring(2),
-        "readBlockHash does not match"
-      );
-      assert(
-        root.readBlockNumber.eq(
-          new BN(mockEthCallQueryResponse.blockNumber.toString())
-        ),
-        "readBlockNumber does not match"
-      );
-      assert(
-        root.readBlockTime.eq(
-          new BN(mockEthCallQueryResponse.blockTime.toString())
-        ),
-        "readBlockNumber does not match"
-      );
-      assert(
-        root.refundRecipient.equals(anchor.getProvider().publicKey),
-        "refundRecipient does not match"
-      );
-      assert(
-        Buffer.from(root.root).equals(Buffer.from(rootHash, "hex")),
-        "root does not match"
-      );
-      assert(
-        Buffer.from(root.verificationType).equals(Buffer.from("00", "hex")),
-        "verificationType does not match"
-      );
-      const latestRoot = await program.account.latestRoot.fetch(latestRootKey);
-      assert(
-        Buffer.from(latestRoot.readBlockHash).toString("hex") ===
-          mockEthCallQueryResponse.blockHash.substring(2),
-        "readBlockHash does not match"
-      );
-      assert(
-        latestRoot.readBlockNumber.eq(
-          new BN(mockEthCallQueryResponse.blockNumber.toString())
-        ),
-        "readBlockNumber does not match"
-      );
-      assert(
-        latestRoot.readBlockTime.eq(
-          new BN(mockEthCallQueryResponse.blockTime.toString())
-        ),
-        "readBlockNumber does not match"
-      );
-      assert(
-        Buffer.from(latestRoot.root).equals(Buffer.from(rootHash, "hex")),
-        "root does not match"
-      );
-      assert(
-        Buffer.from(latestRoot.verificationType).equals(
-          Buffer.from("00", "hex")
-        ),
-        "verificationType does not match"
-      );
-    }
-  );
-
-  it(
-    fmtTest(
       "verify_groth16_proof",
       "Successfully verifies a valid groth16 proof"
     ),
@@ -2005,6 +2025,7 @@ describe("solana-world-id-program", () => {
           )
           .accountsPartial({
             root: deriveRootKey(program.programId, Buffer.from(rootHash), 0),
+            latestRoot: deriveLatestRootKey(program.programId, 0),
           })
           .rpc()
       ).to.be.rejectedWith(
@@ -2013,48 +2034,127 @@ describe("solana-world-id-program", () => {
     }
   );
 
-  it(fmtTest("verify_groth16_proof", "Rejects an expired root"), async () => {
-    // This is the default anvil wallet
-    const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-    const signalHash = hashToField(signal);
-    // This is an example appId and action created via https://developer.worldcoin.org
-    const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
-    const action = "testing";
-    const externalNullifierHash = appIdActionToExternalNullifierHash(
-      appId,
-      action
-    );
-    const rootHash = [
-      ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
-    ];
-    const nullifierHash = [
-      ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
-    ];
-    const proof = [
-      ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
-    ];
-    // update the expiry config
-    const oneSecond = new BN(1);
-    await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
-      .fulfilled;
-    await sleep(1000);
-    await expect(
-      program.methods
-        .verifyGroth16Proof(
-          rootHash,
-          [0],
-          signalHash,
-          nullifierHash,
-          externalNullifierHash,
-          proof
-        )
-        .rpc()
-    ).to.be.rejectedWith("RootExpired.");
-    // put things back the way they were
-    const twentyFourHours = new BN(24 * 60 * 60);
-    await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
-      .fulfilled;
-  });
+  it(
+    fmtTest(
+      "verify_groth16_proof",
+      "Successfully verifies against an expired, but latest root"
+    ),
+    async () => {
+      // This is the default anvil wallet
+      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      const signalHash = hashToField(signal);
+      // This is an example appId and action created via https://developer.worldcoin.org
+      const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+      const action = "testing";
+      const externalNullifierHash = appIdActionToExternalNullifierHash(
+        appId,
+        action
+      );
+      const rootHash = [
+        ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+      ];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
+      // update the expiry config
+      const oneSecond = new BN(1);
+      await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
+        .fulfilled;
+      await sleep(1000);
+      await expect(
+        program.methods
+          .verifyGroth16Proof(
+            rootHash,
+            [0],
+            signalHash,
+            nullifierHash,
+            externalNullifierHash,
+            proof
+          )
+          .rpc()
+      ).to.be.fulfilled;
+      // put things back the way they were
+      const twentyFourHours = new BN(24 * 60 * 60);
+      await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
+        .fulfilled;
+    }
+  );
+
+  it(
+    fmtTest("verify_groth16_proof", "Rejects an expired, non-latest root"),
+    async () => {
+      // Update a new root
+      const signatureSet = anchor.web3.Keypair.generate();
+      const futureResponse = QueryResponse.from(mockQueryResponse.bytes);
+      const mockEthCallQueryResponse = futureResponse.responses[0]
+        .response as EthCallQueryResponse;
+      mockEthCallQueryResponse.blockNumber += BigInt(3);
+      const futureResponseBytes = futureResponse.serialize();
+      const futureResponseSigs = new QueryProxyMock({}).sign(
+        futureResponseBytes
+      );
+      await postQuerySigs(futureResponseSigs, signatureSet);
+      await expect(
+        program.methods
+          .updateRootWithQuery(
+            Buffer.from(futureResponseBytes),
+            [...Buffer.from(rootHash, "hex")],
+            mockGuardianSetIndex
+          )
+          .accountsPartial({
+            guardianSet: deriveGuardianSetKey(
+              coreBridgeAddress,
+              mockGuardianSetIndex
+            ),
+            guardianSignatures: signatureSet.publicKey,
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      // This is the default anvil wallet
+      const signal = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      const signalHash = hashToField(signal);
+      // This is an example appId and action created via https://developer.worldcoin.org
+      const appId = "app_staging_7d23b838b02776cebd87b86ac3248641";
+      const action = "testing";
+      const externalNullifierHash = appIdActionToExternalNullifierHash(
+        appId,
+        action
+      );
+      const merkleRootHash = [
+        ...Buffer.from(idkitSuccessResult.merkle_root.substring(2), "hex"),
+      ];
+      const nullifierHash = [
+        ...Buffer.from(idkitSuccessResult.nullifier_hash.substring(2), "hex"),
+      ];
+      const proof = [
+        ...Buffer.from(idkitSuccessResult.proof.substring(2), "hex"),
+      ];
+      // update the expiry config
+      const oneSecond = new BN(1);
+      await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
+        .fulfilled;
+      await sleep(1000);
+      await expect(
+        program.methods
+          .verifyGroth16Proof(
+            merkleRootHash,
+            [0],
+            signalHash,
+            nullifierHash,
+            externalNullifierHash,
+            proof
+          )
+          .rpc()
+      ).to.be.rejectedWith("RootExpired.");
+      // put things back the way they were
+      const twentyFourHours = new BN(24 * 60 * 60);
+      await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
+        .fulfilled;
+    }
+  );
 
   it(fmtTest("verify_groth16_proof", "Rejects an invalid proof"), async () => {
     // This is the default anvil wallet

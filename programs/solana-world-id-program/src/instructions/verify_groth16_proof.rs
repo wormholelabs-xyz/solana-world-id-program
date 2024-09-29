@@ -1,6 +1,6 @@
 use crate::{
     error::SolanaWorldIDProgramError,
-    state::{Config, Root},
+    state::{Config, LatestRoot, Root},
 };
 use anchor_lang::prelude::*;
 use groth16_solana::groth16::{Groth16Verifier, Groth16Verifyingkey};
@@ -96,6 +96,15 @@ pub struct VerifyGroth16Proof<'info> {
     root: Account<'info, Root>,
 
     #[account(
+        seeds = [
+            LatestRoot::SEED_PREFIX,
+            &verification_type,
+        ],
+        bump = latest_root.bump
+    )]
+    latest_root: Account<'info, LatestRoot>,
+
+    #[account(
         seeds = [Config::SEED_PREFIX],
         bump = config.bump
     )]
@@ -113,17 +122,21 @@ impl<'info> VerifyGroth16Proof<'info> {
         proof: [u8; 256],
     ) -> Result<()> {
         let root = &ctx.accounts.root;
+        let latest_root = &ctx.accounts.latest_root;
         let config = &ctx.accounts.config;
 
-        // Check that the root not has expired.
-        let current_timestamp = Clock::get()?
-            .unix_timestamp
-            .try_into()
-            .expect("timestamp underflow");
-        require!(
-            root.is_active(&current_timestamp, &config.root_expiry),
-            SolanaWorldIDProgramError::RootExpired
-        );
+        // The latest root is always valid
+        if root_hash != latest_root.root {
+            // Check that the root not has expired.
+            let current_timestamp = Clock::get()?
+                .unix_timestamp
+                .try_into()
+                .expect("timestamp underflow");
+            require!(
+                root.is_active(&current_timestamp, &config.root_expiry),
+                SolanaWorldIDProgramError::RootExpired
+            );
+        }
 
         let proof_a = proof[0..64].try_into().unwrap();
         let proof_b = proof[64..192].try_into().unwrap();

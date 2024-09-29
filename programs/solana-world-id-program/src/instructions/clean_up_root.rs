@@ -1,6 +1,6 @@
 use crate::{
     error::SolanaWorldIDProgramError,
-    state::{Config, Root},
+    state::{Config, LatestRoot, Root},
 };
 use anchor_lang::prelude::*;
 
@@ -16,6 +16,16 @@ pub struct CleanUpRoot<'info> {
     )]
     root: Account<'info, Root>,
 
+    /// Latest root of the matching verification type
+    #[account(
+        seeds = [
+            LatestRoot::SEED_PREFIX,
+            &root.verification_type,
+        ],
+        bump = latest_root.bump
+    )]
+    latest_root: Account<'info, LatestRoot>,
+
     #[account(
         seeds = [Config::SEED_PREFIX],
         bump = config.bump
@@ -30,7 +40,14 @@ pub struct CleanUpRoot<'info> {
 impl<'info> CleanUpRoot<'info> {
     pub fn constraints(ctx: &Context<Self>) -> Result<()> {
         let root = &ctx.accounts.root;
+        let latest_root = &ctx.accounts.latest_root;
         let config = &ctx.accounts.config;
+
+        // The latest root cannot be cleaned up, as it is always considered valid
+        require!(
+            root.root != latest_root.root,
+            SolanaWorldIDProgramError::RootIsLatest
+        );
 
         // Check that the root has expired.
         let current_timestamp = Clock::get()?

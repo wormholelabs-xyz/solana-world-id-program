@@ -85,6 +85,9 @@ pub enum SolanaWorldIDProgramError {
     #[msg("RootUnexpired")]
     RootUnexpired = 0x126,
 
+    #[msg("RootIsLatest")]
+    RootIsLatest = 0x127,
+
     #[msg("RootExpired")]
     RootExpired = 0x200,
 

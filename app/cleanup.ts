@@ -5,6 +5,7 @@ import { BN } from "bn.js";
 import { Logger } from "winston";
 import { SolanaWorldIdProgram } from "../target/types/solana_world_id_program";
 import { deriveConfigKey } from "../tests/helpers/config";
+import { deriveLatestRootKey } from "../tests/helpers/latestRoot";
 
 export async function cleanUpRoots(
   program: Program<SolanaWorldIdProgram>,
@@ -14,6 +15,7 @@ export async function cleanUpRoots(
   const config = await program.account.config.fetch(
     deriveConfigKey(program.programId)
   );
+  const latestRoot = deriveLatestRootKey(program.programId, 0);
   const slot = await program.provider.connection.getSlot();
   const blockTime = new BN(
     await program.provider.connection.getBlockTime(slot)
@@ -36,7 +38,7 @@ export async function cleanUpRoots(
       try {
         const tx = await program.methods
           .cleanUpRoot()
-          .accounts({ root: root.publicKey })
+          .accounts({ root: root.publicKey, latestRoot: latestRoot })
           .rpc();
         logger.info(
           `Cleaned up root ${rootHex} account ${root.publicKey.toString()} in tx ${tx}`
