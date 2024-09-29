@@ -90,6 +90,7 @@ describe("solana-world-id-program", () => {
   let mockQueryResponse: QueryProxyQueryResponse = null;
   let mockEthCallQueryResponse: EthCallQueryResponse = null;
   let rootHash: string = "";
+  let dummyRootHash: string = "".padStart(64, "9");
   let rootKey: anchor.web3.PublicKey = null;
 
   async function postQuerySigs(
@@ -1339,6 +1340,122 @@ describe("solana-world-id-program", () => {
     ).to.be.rejectedWith("RootIsLatest.");
   });
 
+  it(fmtTest("clean_up_root", "Rejects active root clean up"), async () => {
+    // post a new root
+    const signatureSet = anchor.web3.Keypair.generate();
+    const futureResponse = QueryResponse.from(mockQueryResponse.bytes);
+    const mockEthCallQueryResponse = futureResponse.responses[0]
+      .response as EthCallQueryResponse;
+    mockEthCallQueryResponse.blockNumber += BigInt(1);
+    mockEthCallQueryResponse.results[0] = `0x${dummyRootHash}`;
+    const futureResponseBytes = futureResponse.serialize();
+    const futureResponseSigs = new QueryProxyMock({}).sign(futureResponseBytes);
+    await postQuerySigs(futureResponseSigs, signatureSet);
+    await expect(
+      program.methods
+        .updateRootWithQuery(
+          Buffer.from(futureResponseBytes),
+          [...Buffer.from(dummyRootHash, "hex")],
+          mockGuardianSetIndex
+        )
+        .accountsPartial({
+          guardianSet: deriveGuardianSetKey(
+            coreBridgeAddress,
+            mockGuardianSetIndex
+          ),
+          guardianSignatures: signatureSet.publicKey,
+        })
+        .rpc()
+    ).to.be.fulfilled;
+    // attempt to clean up the previous, no-longer-latest one
+    await expect(
+      program.methods
+        .cleanUpRoot()
+        .accounts({
+          root: deriveRootKey(
+            program.programId,
+            Buffer.from(rootHash, "hex"),
+            0
+          ),
+          latestRoot: deriveLatestRootKey(program.programId, 0),
+        })
+        .rpc()
+    ).to.be.rejectedWith("RootUnexpired.");
+  });
+
+  it(
+    fmtTest("set_root_expiry", "Successfully updates expiry config"),
+    async () => {
+      const oneSecond = new BN(1);
+      await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
+        .fulfilled;
+      const config = await program.account.config.fetch(
+        deriveConfigKey(program.programId)
+      );
+      assert(config.rootExpiry.eq(oneSecond), "config does not match");
+    }
+  );
+
+  it(fmtTest("clean_up_root", "Rejects non root account"), async () => {
+    await expect(
+      program.methods
+        .cleanUpRoot()
+        .accountsPartial({
+          root: deriveLatestRootKey(program.programId, 0),
+          latestRoot: deriveLatestRootKey(program.programId, 0),
+          refundRecipient: anchor.getProvider().publicKey,
+        })
+        .rpc()
+    ).to.be.rejectedWith(
+      "AnchorError caused by account: root. Error Code: AccountDiscriminatorMismatch."
+    );
+  });
+
+  it(
+    fmtTest("clean_up_root", "Rejects refund recipient account mismatch"),
+    async () => {
+      await expect(
+        program.methods
+          .cleanUpRoot()
+          .accountsPartial({
+            root: deriveRootKey(
+              program.programId,
+              Buffer.from(rootHash, "hex"),
+              0
+            ),
+            latestRoot: deriveLatestRootKey(program.programId, 0),
+            refundRecipient: next_owner.publicKey,
+          })
+          .rpc()
+      ).to.be.rejectedWith(
+        "AnchorError caused by account: root. Error Code: ConstraintHasOne."
+      );
+    }
+  );
+
+  it(
+    fmtTest("clean_up_root", "Successfully cleans up an expired root"),
+    async () => {
+      await sleep(1000);
+      await expect(
+        program.methods
+          .cleanUpRoot()
+          .accounts({
+            root: deriveRootKey(
+              program.programId,
+              Buffer.from(rootHash, "hex"),
+              0
+            ),
+            latestRoot: deriveLatestRootKey(program.programId, 0),
+          })
+          .rpc()
+      ).to.be.fulfilled;
+      await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(
+        "Account does not exist or has no data"
+      );
+    }
+  );
+
   it(
     fmtTest(
       "update_root_with_query",
@@ -1349,7 +1466,7 @@ describe("solana-world-id-program", () => {
       const futureResponse = QueryResponse.from(mockQueryResponse.bytes);
       const mockEthCallQueryResponse = futureResponse.responses[0]
         .response as EthCallQueryResponse;
-      mockEthCallQueryResponse.blockNumber += BigInt(1);
+      mockEthCallQueryResponse.blockNumber += BigInt(2);
       // This is the root from Sepolia at block 6243824 when the following test proof was generated
       // i.e. `05628ccef5b585f9a5afb764d22835f2c71b10beb4b212e45ec9e4d0354c9764` in hex
       const rootHash = BigInt(
@@ -1446,113 +1563,28 @@ describe("solana-world-id-program", () => {
     }
   );
 
-  it(fmtTest("clean_up_root", "Rejects active root clean up"), async () => {
-    await expect(
-      program.methods
-        .cleanUpRoot()
-        .accounts({
-          root: deriveRootKey(
-            program.programId,
-            Buffer.from(rootHash, "hex"),
-            0
-          ),
-          latestRoot: deriveLatestRootKey(program.programId, 0),
-        })
-        .rpc()
-    ).to.be.rejectedWith("RootUnexpired.");
-  });
-
   it(
-    fmtTest("set_root_expiry", "Successfully updates expiry config"),
+    fmtTest(
+      "clean_up_root",
+      "Successfully cleans up with non-payer refund recipient"
+    ),
     async () => {
-      const oneSecond = new BN(1);
-      await expect(program.methods.setRootExpiry(oneSecond).rpc()).to.be
-        .fulfilled;
-      const config = await program.account.config.fetch(
-        deriveConfigKey(program.programId)
-      );
-      assert(config.rootExpiry.eq(oneSecond), "config does not match");
-    }
-  );
-
-  it(fmtTest("clean_up_root", "Rejects non root account"), async () => {
-    await expect(
-      program.methods
-        .cleanUpRoot()
-        .accountsPartial({
-          root: deriveLatestRootKey(program.programId, 0),
-          latestRoot: deriveLatestRootKey(program.programId, 0),
-          refundRecipient: anchor.getProvider().publicKey,
-        })
-        .rpc()
-    ).to.be.rejectedWith(
-      "AnchorError caused by account: root. Error Code: AccountDiscriminatorMismatch."
-    );
-  });
-
-  it(
-    fmtTest("clean_up_root", "Rejects refund recipient account mismatch"),
-    async () => {
-      await expect(
-        program.methods
-          .cleanUpRoot()
-          .accountsPartial({
-            root: deriveRootKey(
-              program.programId,
-              Buffer.from(rootHash, "hex"),
-              0
-            ),
-            latestRoot: deriveLatestRootKey(program.programId, 0),
-            refundRecipient: next_owner.publicKey,
-          })
-          .rpc()
-      ).to.be.rejectedWith(
-        "AnchorError caused by account: root. Error Code: ConstraintHasOne."
-      );
-    }
-  );
-
-  it(
-    fmtTest("clean_up_root", "Rejects non-payer refund recipient"),
-    async () => {
+      await sleep(1000);
+      // clean it up with a different account than it was posted with (in "Rejects active root clean up")
       const otherPayerProgram = programPaidBy(next_owner);
       await expect(
         otherPayerProgram.methods
           .cleanUpRoot()
-          .accountsPartial({
-            root: deriveRootKey(
-              program.programId,
-              Buffer.from(rootHash, "hex"),
-              0
-            ),
-          })
-          .rpc()
-      ).to.be.rejectedWith(
-        "instruction changed the balance of a read-only account"
-      );
-    }
-  );
-
-  it(
-    fmtTest("clean_up_root", "Successfully cleans up an expired root"),
-    async () => {
-      await sleep(1000);
-      await expect(
-        program.methods
-          .cleanUpRoot()
           .accounts({
             root: deriveRootKey(
               program.programId,
-              Buffer.from(rootHash, "hex"),
+              Buffer.from(dummyRootHash, "hex"),
               0
             ),
             latestRoot: deriveLatestRootKey(program.programId, 0),
           })
           .rpc()
       ).to.be.fulfilled;
-      await expect(program.account.root.fetch(rootKey)).to.be.rejectedWith(
-        "Account does not exist or has no data"
-      );
     }
   );
 
