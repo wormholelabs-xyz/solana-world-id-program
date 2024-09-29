@@ -2217,7 +2217,10 @@ describe("solana-world-id-program", () => {
   );
 
   it(
-    fmtTest("verify_groth16_proof", "Panics when is_active would overflow"),
+    fmtTest(
+      "verify_groth16_proof",
+      "Successfully verifies when is_active would overflow"
+    ),
     async () => {
       // root expiry is only checked when it isn't the latest root
       // the test above makes that the case
@@ -2256,7 +2259,7 @@ describe("solana-world-id-program", () => {
             proof
           )
           .rpc()
-      ).to.be.rejectedWith("overflow");
+      ).to.be.fulfilled;
       // put things back the way they were
       const twentyFourHours = new BN(24 * 60 * 60);
       await expect(program.methods.setRootExpiry(twentyFourHours).rpc()).to.be
