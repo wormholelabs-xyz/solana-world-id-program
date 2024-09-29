@@ -78,6 +78,7 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects without owner as signer
 - [x] [verify_groth16_proof](/programs/solana-world-id-program/src/instructions/admin.rs)
   - [x] Successfully verifies a valid groth16 proof
+  - [x] Panics when is_active would overflow
   - [x] Successfully verifies against an expired, but latest root
   - [x] Rejects root hash without a corresponding PDA
   - [x] Rejects root hash instruction argument mismatch
