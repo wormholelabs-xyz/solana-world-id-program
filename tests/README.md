@@ -46,6 +46,7 @@ The goal of these tests is to provide positive and negative cases for account an
   - [x] Rejects invalid response result length
 - [x] [clean_up_root](/programs/solana-world-id-program/src/instructions/clean_up_root.rs)
   - [x] Successfully cleans up an expired root
+  - [x] Rejects non-payer refund recipient
   - [x] Rejects non root account
   - [x] Rejects refund recipient account mismatch
   - [x] Rejects latest root clean up
