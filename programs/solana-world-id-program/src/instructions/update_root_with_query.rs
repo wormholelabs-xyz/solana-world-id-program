@@ -8,6 +8,14 @@ use anchor_lang::{
         self, keccak, program_memory::sol_memcpy, secp256k1_recover::secp256k1_recover,
     },
 };
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// REQUIRED IMPORT
+use trident_derive_accounts_snapshots::AccountsSnapshots;
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 use wormhole_query_sdk::{
     structs::{ChainSpecificQuery, ChainSpecificResponse, QueryResponse},
     MESSAGE_PREFIX, QUERY_MESSAGE_LEN,
@@ -52,7 +60,7 @@ fn test_latest_root_signature() {
     assert_eq!(LATEST_ROOT_SIGNATURE, hash[0..4]);
 }
 
-#[derive(Accounts)]
+#[derive(Accounts, AccountsSnapshots)]
 #[instruction(bytes: Vec<u8>, root_hash: [u8; 32], guardian_set_index: u32)]
 pub struct UpdateRootWithQuery<'info> {
     #[account(mut)]

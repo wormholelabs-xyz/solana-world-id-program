@@ -3,6 +3,15 @@ use wormhole_solana_utils::cpi::bpf_loader_upgradeable::{self, BpfLoaderUpgradea
 
 use crate::{error::SolanaWorldIDProgramError, state::Config};
 
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// REQUIRED IMPORT
+use trident_derive_accounts_snapshots::AccountsSnapshots;
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
 // * Transfer ownership
 // Adapted from https://github.com/wormhole-foundation/example-native-token-transfers/blob/7a5b86ff8c0c36f9b609175d67e5f3651a62d740/solana/programs/example-native-token-transfers/src/instructions/admin.rs
 
@@ -13,7 +22,7 @@ use crate::{error::SolanaWorldIDProgramError, state::Config};
 ///
 /// The transfer can be cancelled by the existing owner invoking the [`claim_ownership`]
 /// instruction.
-#[derive(Accounts)]
+#[derive(Accounts, AccountsSnapshots)]
 pub struct TransferOwnership<'info> {
     #[account(
         mut,
@@ -67,7 +76,7 @@ pub fn transfer_ownership(ctx: Context<TransferOwnership>) -> Result<()> {
 
 // * Claim ownership
 
-#[derive(Accounts)]
+#[derive(Accounts, AccountsSnapshots)]
 pub struct ClaimOwnership<'info> {
     #[account(
         mut,
@@ -121,7 +130,7 @@ pub fn claim_ownership(ctx: Context<ClaimOwnership>) -> Result<()> {
 }
 
 // * Set Root Expiry
-#[derive(Accounts)]
+#[derive(Accounts, AccountsSnapshots)]
 pub struct SetRootExpiry<'info> {
     pub owner: Signer<'info>,
 
@@ -140,7 +149,7 @@ pub fn set_root_expiry(ctx: Context<SetRootExpiry>, root_expiry: u64) -> Result<
 }
 
 // * Set Allowed Update Staleness
-#[derive(Accounts)]
+#[derive(Accounts, AccountsSnapshots)]
 pub struct SetAllowedUpdateStaleness<'info> {
     pub owner: Signer<'info>,
 

@@ -17,12 +17,15 @@ no-log-ix-name = []
 mainnet = ["wormhole-solana-consts/mainnet"]
 testnet = ["wormhole-solana-consts/testnet"]
 idl-build = ["anchor-lang/idl-build"]
+trident-fuzzing = ["dep:trident-fuzz"]
 
 [dependencies]
+trident-derive-accounts-snapshots = { git = "https://github.com/Ackee-Blockchain/trident.git", branch = "develop" }
+trident-fuzz = { git = "https://github.com/Ackee-Blockchain/trident.git", branch = "develop", optional = true }
 anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
 cfg-if = "1.0"
-wormhole-raw-vaas = {version = "0.3.0-alpha.1"}
-wormhole-solana-consts = {version = "0.3.0-alpha.1"}
-wormhole-solana-utils = {version = "0.3.0-alpha.1"}
+wormhole-raw-vaas = { version = "0.3.0-alpha.1" }
+wormhole-solana-consts = { version = "0.3.0-alpha.1" }
+wormhole-solana-utils = { version = "0.3.0-alpha.1" }
 wormhole-query-sdk = { git = "https://github.com/wormholelabs-xyz/wormhole-query-sdk-rust", version = "0.0.1", rev = "0f34cb470f4e3137b53aa91adcbb0c7def280925" }
 groth16-solana = "0.0.3"

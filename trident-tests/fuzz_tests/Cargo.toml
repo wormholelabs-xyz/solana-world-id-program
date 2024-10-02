@@ -1,0 +1,58 @@
+[[bin]]
+name = "fuzz_0"
+path = "fuzz_0/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_1"
+path = "fuzz_1/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_2"
+path = "fuzz_2/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_3"
+path = "fuzz_3/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_4"
+path = "fuzz_4/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_5"
+path = "fuzz_5/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_6"
+path = "fuzz_6/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_7"
+path = "fuzz_7/test_fuzz.rs"
+
+[[bin]]
+name = "fuzz_8"
+path = "fuzz_8/test_fuzz.rs"
+
+[package]
+name = "fuzz_tests"
+version = "0.1.0"
+description = "Created with Trident"
+edition = "2021"
+
+[dependencies]
+arbitrary = "1.3.0"
+assert_matches = "1.4.0"
+borsh = "1.5.1"
+
+[dependencies.trident-client]
+git = "https://github.com/Ackee-Blockchain/trident.git"
+branch = "develop"
+
+[dependencies.solana-world-id-program]
+path = "../../programs/solana-world-id-program"
+features = ["trident-fuzzing"]
+
+[dependencies.solana-world-id-onchain-template]
+path = "../../programs/solana-world-id-onchain-template"
+features = ["trident-fuzzing"]
