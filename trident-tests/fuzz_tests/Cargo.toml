@@ -47,7 +47,7 @@ borsh = "1.5.1"
 
 [dependencies.trident-client]
 git = "https://github.com/Ackee-Blockchain/trident.git"
-branch = "develop"
+rev = "eb8f647104209323b53e3637d3d3c5b7d140d368"
 
 [dependencies.solana-world-id-program]
 path = "../../programs/solana-world-id-program"

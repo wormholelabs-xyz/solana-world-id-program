@@ -5,12 +5,8 @@ use crate::{
 use anchor_lang::prelude::*;
 use groth16_solana::groth16::{Groth16Verifier, Groth16Verifyingkey};
 /// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-/// REQUIRED IMPORT
+/// import required for fuzzing
 use trident_derive_accounts_snapshots::AccountsSnapshots;
-/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 /// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 // Generated with https://github.com/Lightprotocol/groth16-solana/tree/5f1a1521bb3032601b235b6df97867801f2dfb0b?tab=readme-ov-file#create-verifyingkey-from-snarkjs-verifyingkeyjson
 // Using the values from https://github.com/worldcoin/world-id-state-bridge/blob/29641f734b1ba8ff107c80c6dfd2b903b4eecc1c/src/SemaphoreVerifier.sol#L59-L115

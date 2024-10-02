@@ -9,6 +9,17 @@ outputs:
 runs:
   using: "composite"
   steps:
+    # Cache Rust toolchain and Cargo artifacts
+    - uses: actions/cache@v3
+      name: Cache Rust Toolchain and Cargo Artifacts
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          ~/.cargo/bin
+          ~/.rustup
+        key: rust-toolchain-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Install system packages
       run: sudo apt-get update && sudo apt-get install -y build-essential libudev-dev
       shell: bash
@@ -21,9 +32,4 @@ runs:
 
     - name: Install Cargo Expand
       run: cargo install --locked cargo-expand
-      shell: bash
-
-    - name: Get rustc version
-      id: rust-version
-      run: echo "rustc_hash=$(rustc -V | cut -d ' ' -f 3)" >> $GITHUB_ENV
       shell: bash

@@ -5,19 +5,15 @@ on:
   pull_request:
 
 env:
-  SOLANA_CLI_VERSION: 1.18.18
   HONGGFUZZ_VERSION: 0.5.56
-  TRIDENT_COMMIT_HASH: eb8f647104209323b53e3637d3d3c5b7d140d368  # Set desired commit hash here
+  TRIDENT_COMMIT_HASH: eb8f647104209323b53e3637d3d3c5b7d140d368  # Desired Trident commit hash
 
 jobs:
-  simple-cpi-6:
+  fuzz_0:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         name: Checkout Repository
-
-      - name: Set Anchor Version
-        run: echo "ANCHOR_VERSION=0.30.1" >> $GITHUB_ENV
 
       - uses: Swatinem/rust-cache@v2
         name: Cache Rust and its Packages
@@ -25,17 +21,18 @@ jobs:
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust/
 
-      - name: Setup Solana Environment
-        uses: ./.github/actions/setup-solana/
-
       - name: Setup Trident with Specified Commit
         uses: ./.github/actions/setup-trident/
-        with:
-          commit-hash: ${{ env.TRIDENT_COMMIT_HASH }}
 
       - name: Setup Honggfuzz
         uses: ./.github/actions/setup-honggfuzz/
-        id: rust-setup
+
+      # Cache the target folder, which stores build artifacts for the current workspace
+      - name: Cache Target Folder
+        uses: actions/cache@v3
+        with:
+          path: trident-tests/fuzz_tests/fuzzing/hfuzz_target # default folder to store build artifacts
+          key: target-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ env.TRIDENT_COMMIT_HASH }}
 
       - name: Run Fuzz Tests
-        run: trident fuzz run fuzz_0
+        run: trident fuzz run --with-exit-code fuzz_0

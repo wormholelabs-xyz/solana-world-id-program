@@ -9,7 +9,10 @@ use solana_program::keccak::hash;
 use solana_world_id_program::cpi::accounts::VerifyGroth16Proof;
 use solana_world_id_program::program::SolanaWorldIdProgram;
 
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+/// import required for fuzzing
 use trident_derive_accounts_snapshots::AccountsSnapshots;
+/// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 // Hardcoded examples
 pub const APP_ID: &str = "app_staging_7d23b838b02776cebd87b86ac3248641";
@@ -25,6 +28,7 @@ pub struct VerifyAndExecute<'info> {
     /// CHECK: account is passed to `verify_groth16_proof` which checks the PDA.
     pub root: AccountInfo<'info>,
 
+    /// CHECK: account is passed to `verify_groth16_proof` which checks the PDA.
     pub latest_root: AccountInfo<'info>,
 
     /// CHECK: account is passed to `verify_groth16_proof` which checks the PDA.

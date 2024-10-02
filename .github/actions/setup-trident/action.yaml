@@ -4,22 +4,14 @@ description: "Setup Trident"
 runs:
   using: "composite"
   steps:
-    - uses: actions/cache@v3
-      name: Cache Trident
-      id: cache-trident
-      with:
-        path: |
-          ~/.cache/trident/
-          ~/.local/share/trident/
-        key: trident-${{ runner.os }}-v0000-${{ env.TRIDENT_COMMIT_HASH }}
-
-    - name: Clone Trident at specified commit
+    - name: Clone Trident at specified commit and Install
       run: |
-        git clone https://github.com/Ackee-Blockchain/trident.git
-        cd trident
-        git checkout ${{ env.TRIDENT_COMMIT_HASH }}
-      shell: bash
-
-    - name: Install Trident
-      run: cargo install --path crates/cli
+        if ! command -v trident &> /dev/null; then
+          git clone --depth 1 https://github.com/Ackee-Blockchain/trident.git
+          cd trident
+          git checkout ${{ env.TRIDENT_COMMIT_HASH }}
+          cargo install --path crates/cli
+        else
+          echo "Trident is already installed, skipping installation."
+        fi
       shell: bash
