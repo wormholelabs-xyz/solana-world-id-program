@@ -1,0 +1,15 @@
+name: "Setup Honggfuzz"
+description: "Setup Honggfuzz"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Dependencies (binutils-dev & libunwind-dev)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y binutils-dev libunwind-dev
+      shell: bash
+
+    - name: Install Honggfuzz
+      run: cargo install honggfuzz --version ${{ env.HONGGFUZZ_VERSION }}
+      shell: bash

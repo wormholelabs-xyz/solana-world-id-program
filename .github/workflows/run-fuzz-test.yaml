@@ -1,0 +1,38 @@
+name: Test Fuzz Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+env:
+  HONGGFUZZ_VERSION: 0.5.56
+  TRIDENT_COMMIT_HASH: eb8f647104209323b53e3637d3d3c5b7d140d368  # Desired Trident commit hash
+
+jobs:
+  fuzz_0:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+
+      - uses: Swatinem/rust-cache@v2
+        name: Cache Rust and its Packages
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust/
+
+      - name: Setup Trident with Specified Commit
+        uses: ./.github/actions/setup-trident/
+
+      - name: Setup Honggfuzz
+        uses: ./.github/actions/setup-honggfuzz/
+
+      # Cache the target folder, which stores build artifacts for the current workspace
+      - name: Cache Target Folder
+        uses: actions/cache@v3
+        with:
+          path: trident-tests/fuzz_tests/fuzzing/hfuzz_target # default folder to store build artifacts
+          key: target-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ env.TRIDENT_COMMIT_HASH }}
+
+      - name: Run Fuzz Tests
+        run: trident fuzz run --with-exit-code fuzz_0
